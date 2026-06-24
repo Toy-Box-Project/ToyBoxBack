@@ -1,0 +1,286 @@
+### 🌍 VARIABLES GLOBALES
+@api = http://localhost:3000/api
+@token = {{token}}
+
+### ---------------------------------------
+### 🔐 AUTH
+### ---------------------------------------
+
+### Register
+POST {{api}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "luna",
+  "first_name": "Luna",
+  "last_name": "González",
+  "email": "luna@example.com",
+  "password": "123456",
+  "user_birthday": "1995-01-01",
+  "user_province": "Madrid",
+  "user_city": "Madrid",
+  "user_zipcode": "28001"
+}
+
+### Login
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "luna@example.com",
+  "password": "123456"
+}
+
+### Guardar token manualmente:
+# @token = eyJhbGciOi...
+
+---
+
+### ---------------------------------------
+### 👤 USERS
+### ---------------------------------------
+
+### Get my profile
+GET {{api}}/users/me
+Authorization: Bearer {{token}}
+
+### Update my profile
+PUT {{api}}/users/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "first_name": "Luna",
+  "last_name": "González",
+  "phone": 666777888
+}
+
+### Admin: get all users
+GET {{api}}/users
+Authorization: Bearer {{token}}
+
+---
+
+### ---------------------------------------
+### 🏷 CATEGORIES
+### ---------------------------------------
+
+### Get all categories
+GET {{api}}/categories
+
+### Create category (admin)
+POST {{api}}/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Juguetes",
+  "description": "Categoría de juguetes"
+}
+
+---
+
+### ---------------------------------------
+### 📦 ITEMS
+### ---------------------------------------
+
+### Get all items
+GET {{api}}/items
+
+### Get item by ID
+GET {{api}}/items/1
+
+### Create item
+POST {{api}}/items
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Nintendo Switch",
+  "description": "Perfecta",
+  "price": 250,
+  "conservation_status": "published",
+  "location": "Madrid",
+  "fk_categories_id": 1
+}
+
+### Update item
+PUT {{api}}/items/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "price": 200
+}
+
+### Delete item
+DELETE {{api}}/items/1
+Authorization: Bearer {{token}}
+
+---
+
+### ---------------------------------------
+### ⭐ FAVORITES
+### ---------------------------------------
+
+### Get my favorites
+GET {{api}}/favorites
+Authorization: Bearer {{token}}
+
+### Add favorite
+POST {{api}}/favorites
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "itemId": 1
+}
+
+### Remove favorite
+DELETE {{api}}/favorites/1
+Authorization: Bearer {{token}}
+
+---
+
+### ---------------------------------------
+### ⭐ REVIEWS
+### ---------------------------------------
+
+### Get reviews for item
+GET {{api}}/reviews/1
+
+### Create review
+POST {{api}}/reviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "rating": 5,
+  "comment": "Muy buen trato",
+  "fk_items_id": 1,
+  "fk_reviewed_id": 2
+}
+
+### Delete review
+DELETE {{api}}/reviews/1
+Authorization: Bearer {{token}}
+
+---
+
+### ---------------------------------------
+### 📅 RESERVATIONS
+### ---------------------------------------
+
+### Get my reservations
+GET {{api}}/reservations
+Authorization: Bearer {{token}}
+
+### Create reservation
+POST {{api}}/reservations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "itemId": 1
+}
+
+### Cancel reservation
+PUT {{api}}/reservations/1/cancel
+Authorization: Bearer {{token}}
+
+---
+
+### ---------------------------------------
+### 🛒 ORDERS
+### ---------------------------------------
+
+### Get my orders
+GET {{api}}/orders
+Authorization: Bearer {{token}}
+
+### Create order
+POST {{api}}/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "itemId": 1,
+  "final_price": 200
+}
+
+---
+
+### ---------------------------------------
+### 💬 CONVERSATIONS
+### ---------------------------------------
+
+### Get my conversations
+GET {{api}}/conversations
+Authorization: Bearer {{token}}
+
+### Create conversation
+POST {{api}}/conversations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "itemId": 1,
+  "sellerId": 2
+}
+
+---
+
+### ---------------------------------------
+### ✉ MESSAGES
+### ---------------------------------------
+
+### Get messages of a conversation
+GET {{api}}/messages/1
+Authorization: Bearer {{token}}
+
+### Send message
+POST {{api}}/messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Hola, ¿sigue disponible?",
+  "receiverId": 2,
+  "conversationId": 1
+}
+
+---
+
+### ---------------------------------------
+### 🚨 REPORTS
+### ---------------------------------------
+
+### Get all reports
+GET {{api}}/reports
+Authorization: Bearer {{token}}
+
+### Create report
+POST {{api}}/reports
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "reason": "Comportamiento inapropiado",
+  "fk_items_id": 1,
+  "fk_user_reported": 2
+}
+
+---
+
+### ---------------------------------------
+### 🛡 MODERATION
+### ---------------------------------------
+
+### Take action on report
+POST {{api}}/moderation/1/action
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "decision": "removed"
+}

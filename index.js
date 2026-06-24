@@ -1,11 +1,21 @@
-import express from 'express';
+// Server creation and configuration
+const http = require("node:http");
+const app = require("./src/app");
 
-const app = express();
+// Config .env
+require("dotenv").config();
 
-app.get('/', (req, res) => {
-  res.send('Servidor funcionando');
+// Server creation
+const server = http.createServer(app);
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT);
+
+// Listeners
+server.on("listening", () => {
+    console.log(`Server listening on port ${PORT}`);
 });
 
-app.listen(3000, () => {
-  console.log('Servidor en puerto 3000');
+server.on("error", (error) => {
+    console.log("Server error:",error);
 });

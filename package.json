@@ -1,23 +1,39 @@
 {
-  "name": "Backend",
+  "name": "toybox-backend-api",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend API for ToyBox, a second-hand toy marketplace built with Node.js, Express and MySQL, featuring JWT authentication, Cloudinary image upload, user messaging, reviews, favorites, orders and full marketplace operations.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "lint": "biome lint",
+    "format": "biome check --write",
+    "test": "jest"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "express",
+    "init",
+    "template"
+  ],
+  "author": "Heimer, Julián, Jesús, Jaime, Adrián y Luna.",
   "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "^11.4.0",
-      "onFail": "download"
-    }
-  },
-  "type": "module",
+  "type": "commonjs",
   "dependencies": {
-    "express": "^5.2.1"
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.10.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.2.0",
+    "mysql2": "^3.22.5",
+    "nodemailer": "^9.0.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
+    "@types/express": "^5.0.6",
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
   }
 }
