@@ -1,5 +1,5 @@
 {
-  "name": "Backend",
+  "name": "ToyBoxBack",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -12,12 +12,9 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "^11.4.0",
+      "version": "^11.9.0",
       "onFail": "download"
     }
   },
-  "type": "module",
-  "dependencies": {
-    "express": "^5.2.1"
-  }
+  "type": "module"
 }
