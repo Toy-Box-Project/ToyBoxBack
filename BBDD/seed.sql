@@ -10,7 +10,24 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-USE railway;
+USE toybox;
+
+-- ============================
+-- LIMPIEZA (seed idempotente)
+-- ============================
+TRUNCATE TABLE items_view;
+TRUNCATE TABLE notifications;
+TRUNCATE TABLE moderation_actions;
+TRUNCATE TABLE reports;
+TRUNCATE TABLE favorites;
+TRUNCATE TABLE reviews;
+TRUNCATE TABLE item_history;
+TRUNCATE TABLE messages;
+TRUNCATE TABLE conversations;
+TRUNCATE TABLE items_photos;
+TRUNCATE TABLE items;
+TRUNCATE TABLE users;
+TRUNCATE TABLE categories;
 
 -- ============================
 -- CATEGORIES
@@ -237,7 +254,7 @@ INSERT INTO items (id_items, title, description, price, conservation_status, loc
 -- ============================
 -- ITEMS_PHOTOS
 -- ============================
-INSERT INTO items_photos (photo_url, `order`, fk_items_id) VALUES
+INSERT INTO items_photos (photo_url, photo_order, fk_items_id) VALUES
 ('https://res.cloudinary.com/dwabpg7an/image/upload/v1782394525/ITEM-0001_djaxcd.jpg',    1, 1),
 ('https://res.cloudinary.com/dwabpg7an/image/upload/v1782394527/ITEM-0002-1_snlmfb.jpg',  1, 2),
 ('https://res.cloudinary.com/dwabpg7an/image/upload/v1782394528/ITEM-0002-2_ohlp38.jpg',  2, 2),
@@ -395,7 +412,7 @@ INSERT INTO items_photos (photo_url, `order`, fk_items_id) VALUES
 -- ============================
 -- CONVERSATIONS
 -- ============================
-INSERT INTO conversations (id_conversations, started_date, fk_items_id, fk_seller_id, fk_buyer_id) VALUES
+INSERT INTO conversations (id_conversations, created_at, fk_items_id, fk_seller_id, fk_buyer_id) VALUES
 (1,  '2024-10-10 10:00:00', 3,  4,  16),
 (2,  '2024-10-20 11:00:00', 6,  5,  14),
 (3,  '2024-10-15 12:00:00', 10, 6,  9),
@@ -430,7 +447,7 @@ INSERT INTO conversations (id_conversations, started_date, fk_items_id, fk_selle
 -- ============================
 -- MESSAGES
 -- ============================
-INSERT INTO messages (id_messages, content, sent_date, `read`, fk_users_id_sent, fk_users_id_received, fk_conversations_id) VALUES
+INSERT INTO messages (id_messages, content, sent_at, `read`, fk_users_id_sent, fk_users_id_received, fk_conversations_id) VALUES
 (1,  '¡Hola! ¿Siguen disponibles los auriculares?',                    '2024-10-10 10:05:00', 1, 16, 4,  1),
 (2,  'Sí, están disponibles. ¿Cuándo puedes recogerlos?',              '2024-10-10 10:30:00', 1, 4,  16, 1),
 (3,  'Perfecto, me lo quedo. ¿Aceptas Bizum?',                         '2024-10-10 11:00:00', 1, 16, 4,  1),
@@ -471,37 +488,37 @@ INSERT INTO messages (id_messages, content, sent_date, `read`, fk_users_id_sent,
 -- ============================
 -- ITEM_HISTORY
 -- ============================
-INSERT INTO item_history (id_item_history, final_price, trade_status, trade_date, fk_items_id, fk_buyer_id) VALUES
-(1,  8.00,  'done', '2024-10-15 15:00:00', 3,  16),
-(2,  12.00, 'done', '2024-10-25 12:00:00', 6,  14),
-(3,  12.00, 'done', '2024-10-20 14:00:00', 10, 9),
-(4,  10.00, 'done', '2024-11-01 16:00:00', 12, 10),
-(5,  20.00, 'done', '2024-11-10 10:00:00', 14, 11),
-(6,  9.00,  'done', '2024-11-12 12:00:00', 17, 12),
-(7,  8.00,  'done', '2024-11-20 15:00:00', 20, 8),
-(8,  12.00, 'done', '2024-11-25 10:00:00', 23, 16),
-(9,  20.00, 'done', '2024-11-28 14:00:00', 25, 13),
-(10, 15.00, 'done', '2024-12-02 16:00:00', 27, 15),
-(11, 14.00, 'done', '2024-12-10 12:00:00', 30, 11),
-(12, 9.00,  'done', '2024-12-15 14:00:00', 32, 9),
-(13, 8.00,  'done', '2024-12-28 10:00:00', 36, 13),
-(14, 12.00, 'done', '2025-01-03 12:00:00', 38, 14),
-(15, 9.00,  'done', '2025-01-10 14:00:00', 41, 15),
-(16, 10.00, 'done', '2025-01-15 16:00:00', 44, 8),
-(17, 6.00,  'done', '2025-01-20 18:00:00', 46, 12),
-(18, 7.00,  'done', '2025-01-25 10:00:00', 48, 16),
-(19, 6.00,  'done', '2025-01-30 12:00:00', 50, 9),
-(20, 12.00, 'done', '2025-02-05 14:00:00', 52, 10),
-(21, 7.00,  'done', '2025-02-10 16:00:00', 55, 11),
-(22, 18.00, 'done', '2025-02-15 18:00:00', 60, 12),
-(23, 8.00,  'done', '2025-02-20 10:00:00', 62, 13),
-(24, 8.00,  'done', '2025-02-25 12:00:00', 65, 14),
-(25, 12.00, 'done', '2025-03-05 14:00:00', 69, 15),
-(26, 12.00, 'done', '2025-03-12 16:00:00', 72, 8),
-(27, 6.00,  'done', '2025-03-18 18:00:00', 75, 9),
-(28, 9.00,  'done', '2025-04-01 10:00:00', 78, 10),
-(29, 7.00,  'done', '2025-04-15 12:00:00', 82, 11),
-(30, 6.00,  'done', '2025-05-02 14:00:00', 88, 12);
+INSERT INTO item_history (id_item_history, trade_status, trade_date, fk_items_id, fk_buyer_id) VALUES
+(1,  'done', '2024-10-15 15:00:00', 3,  16),
+(2, 'done', '2024-10-25 12:00:00', 6,  14),
+(3, 'done', '2024-10-20 14:00:00', 10, 9),
+(4, 'done', '2024-11-01 16:00:00', 12, 10),
+(5, 'done', '2024-11-10 10:00:00', 14, 11),
+(6,  'done', '2024-11-12 12:00:00', 17, 12),
+(7,  'done', '2024-11-20 15:00:00', 20, 8),
+(8, 'done', '2024-11-25 10:00:00', 23, 16),
+(9, 'done', '2024-11-28 14:00:00', 25, 13),
+(10, 'done', '2024-12-02 16:00:00', 27, 15),
+(11, 'done', '2024-12-10 12:00:00', 30, 11),
+(12,  'done', '2024-12-15 14:00:00', 32, 9),
+(13,  'done', '2024-12-28 10:00:00', 36, 13),
+(14, 'done', '2025-01-03 12:00:00', 38, 14),
+(15,  'done', '2025-01-10 14:00:00', 41, 15),
+(16, 'done', '2025-01-15 16:00:00', 44, 8),
+(17,  'done', '2025-01-20 18:00:00', 46, 12),
+(18,  'done', '2025-01-25 10:00:00', 48, 16),
+(19,  'done', '2025-01-30 12:00:00', 50, 9),
+(20, 'done', '2025-02-05 14:00:00', 52, 10),
+(21,  'done', '2025-02-10 16:00:00', 55, 11),
+(22, 'done', '2025-02-15 18:00:00', 60, 12),
+(23,  'done', '2025-02-20 10:00:00', 62, 13),
+(24,  'done', '2025-02-25 12:00:00', 65, 14),
+(25, 'done', '2025-03-05 14:00:00', 69, 15),
+(26, 'done', '2025-03-12 16:00:00', 72, 8),
+(27,  'done', '2025-03-18 18:00:00', 75, 9),
+(28,  'done', '2025-04-01 10:00:00', 78, 10),
+(29,  'done', '2025-04-15 12:00:00', 82, 11),
+(30,  'done', '2025-05-02 14:00:00', 88, 12);
 
 
 -- ============================
@@ -542,121 +559,121 @@ INSERT INTO reviews (id_reviews, rating, comment, review_date, fk_items_id, fk_r
 -- ============================
 -- FAVORITES
 -- ============================
-INSERT INTO favorites (id_favorite, saved_date, fk_users_id, fk_items_id) VALUES
-(1,  '2024-10-02 10:00:00', 8,  1),
-(2,  '2024-10-05 11:00:00', 9,  2),
-(3,  '2024-10-08 12:00:00', 10, 5),
-(4,  '2024-10-10 13:00:00', 11, 7),
-(5,  '2024-10-12 14:00:00', 12, 8),
-(6,  '2024-10-14 15:00:00', 13, 9),
-(7,  '2024-10-16 16:00:00', 14, 11),
-(8,  '2024-10-18 17:00:00', 15, 13),
-(9,  '2024-10-20 18:00:00', 16, 15),
-(10, '2024-10-22 09:00:00', 17, 16),
-(11, '2024-10-24 10:00:00', 18, 18),
-(12, '2024-10-26 11:00:00', 19, 19),
-(13, '2024-10-28 12:00:00', 20, 21),
-(14, '2024-10-30 13:00:00', 8,  22),
-(15, '2024-11-01 14:00:00', 9,  24),
-(16, '2024-11-03 15:00:00', 10, 26),
-(17, '2024-11-05 16:00:00', 11, 28),
-(18, '2024-11-07 17:00:00', 12, 31),
-(19, '2024-11-09 18:00:00', 13, 33),
-(20, '2024-11-11 09:00:00', 14, 34),
-(21, '2024-11-13 10:00:00', 15, 35),
-(22, '2024-11-15 11:00:00', 16, 37),
-(23, '2024-11-17 12:00:00', 17, 40),
-(24, '2024-11-19 13:00:00', 18, 42),
-(25, '2024-11-21 14:00:00', 19, 43),
-(26, '2024-11-23 15:00:00', 20, 45),
-(27, '2024-11-25 16:00:00', 8,  47),
-(28, '2024-11-27 17:00:00', 9,  49),
-(29, '2024-11-29 18:00:00', 10, 51),
-(30, '2024-12-01 09:00:00', 11, 53),
-(31, '2024-12-03 10:00:00', 12, 54),
-(32, '2024-12-05 11:00:00', 13, 56),
-(33, '2024-12-07 12:00:00', 14, 57),
-(34, '2024-12-09 13:00:00', 15, 58),
-(35, '2024-12-11 14:00:00', 16, 59),
-(36, '2024-12-13 15:00:00', 17, 61),
-(37, '2024-12-15 16:00:00', 18, 63),
-(38, '2024-12-17 17:00:00', 19, 64),
-(39, '2024-12-19 18:00:00', 20, 66),
-(40, '2024-12-21 09:00:00', 19, 67),
-(41, '2024-12-23 10:00:00', 9,  70),
-(42, '2024-12-25 11:00:00', 10, 71),
-(43, '2024-12-27 12:00:00', 11, 73),
-(44, '2024-12-29 13:00:00', 12, 74),
-(45, '2024-12-31 14:00:00', 13, 76),
-(46, '2025-01-02 15:00:00', 14, 77),
-(47, '2025-01-04 16:00:00', 15, 79),
-(48, '2025-01-06 17:00:00', 16, 80),
-(49, '2025-01-08 18:00:00', 17, 81),
-(50, '2025-01-10 09:00:00', 18, 83);
+INSERT INTO favorites (fk_users_id, fk_items_id, added_at) VALUES
+(8, 1, '2024-10-02 10:00:00'),
+(9, 2, '2024-10-05 11:00:00'),
+(10, 5, '2024-10-08 12:00:00'),
+(11, 7, '2024-10-10 13:00:00'),
+(12, 8, '2024-10-12 14:00:00'),
+(13, 9, '2024-10-14 15:00:00'),
+(14, 11, '2024-10-16 16:00:00'),
+(15, 13, '2024-10-18 17:00:00'),
+(16, 15, '2024-10-20 18:00:00'),
+(17, 16, '2024-10-22 09:00:00'),
+(18, 18, '2024-10-24 10:00:00'),
+(19, 19, '2024-10-26 11:00:00'),
+(20, 21, '2024-10-28 12:00:00'),
+(8, 22, '2024-10-30 13:00:00'),
+(9, 24, '2024-11-01 14:00:00'),
+(10, 26, '2024-11-03 15:00:00'),
+(11, 28, '2024-11-05 16:00:00'),
+(12, 31, '2024-11-07 17:00:00'),
+(13, 33, '2024-11-09 18:00:00'),
+(14, 34, '2024-11-11 09:00:00'),
+(15, 35, '2024-11-13 10:00:00'),
+(16, 37, '2024-11-15 11:00:00'),
+(17, 40, '2024-11-17 12:00:00'),
+(18, 42, '2024-11-19 13:00:00'),
+(19, 43, '2024-11-21 14:00:00'),
+(20, 45, '2024-11-23 15:00:00'),
+(8, 47, '2024-11-25 16:00:00'),
+(9, 49, '2024-11-27 17:00:00'),
+(10, 51, '2024-11-29 18:00:00'),
+(11, 53, '2024-12-01 09:00:00'),
+(12, 54, '2024-12-03 10:00:00'),
+(13, 56, '2024-12-05 11:00:00'),
+(14, 57, '2024-12-07 12:00:00'),
+(15, 58, '2024-12-09 13:00:00'),
+(16, 59, '2024-12-11 14:00:00'),
+(17, 61, '2024-12-13 15:00:00'),
+(18, 63, '2024-12-15 16:00:00'),
+(19, 64, '2024-12-17 17:00:00'),
+(20, 66, '2024-12-19 18:00:00'),
+(19, 67, '2024-12-21 09:00:00'),
+(9, 70, '2024-12-23 10:00:00'),
+(10, 71, '2024-12-25 11:00:00'),
+(11, 73, '2024-12-27 12:00:00'),
+(12, 74, '2024-12-29 13:00:00'),
+(13, 76, '2024-12-31 14:00:00'),
+(14, 77, '2025-01-02 15:00:00'),
+(15, 79, '2025-01-04 16:00:00'),
+(16, 80, '2025-01-06 17:00:00'),
+(17, 81, '2025-01-08 18:00:00'),
+(18, 83, '2025-01-10 09:00:00');
 
 -- ============================
 -- REPORTS
 -- ============================
-INSERT INTO reports (id_reports, reason, status, report_date, resolution_date, fk_items_id, fk_user_reported, fk_user_reports_received, fk_moderator_id) VALUES
+INSERT INTO reports (id_reports, reason, status, report_date, fk_items_id, fk_user_reported, fk_user_reports_received) VALUES
 (1, 'Los auriculares tienen daños físicos no mencionados en la descripción.',
-    'resolved', '2025-04-28 09:00:00', '2025-05-03 10:00:00', 4,  4,  9,  3),
+    'resolved', '2025-04-28 09:00:00', 4, 4, 9),
 (2, 'El LEGO Rodillo no tiene todas las piezas tal como se indica en el anuncio.',
-    'resolved', '2025-05-01 10:00:00', '2025-05-07 11:00:00', 21, 11, 10, 4),
+    'resolved', '2025-05-01 10:00:00', 21, 11, 10),
 (3, 'El precio de la LEGO Vespa parece excesivo para el estado real del producto.',
-    'resolved', '2025-05-06 14:00:00', '2025-05-12 10:00:00', 26, 16, 11, 5),
+    'resolved', '2025-05-06 14:00:00', 26, 16, 11),
 (4, 'Las fotos de Baby Yoda edición alternativa no corresponden al artículo real.',
-    'pending',  '2025-05-10 11:00:00', NULL,                  45, 17, 12, 6),
+    'pending',  '2025-05-10 11:00:00', 45, 17, 12),
 (5, 'El juego Virus! no funciona correctamente según lo descrito.',
-    'pending',  '2025-05-14 15:00:00', NULL,                  57, 8,  13, 7),
+    'pending',  '2025-05-14 15:00:00', 57, 8, 13),
 (6, 'Posible fraude: la figura Labubu podría ser una falsificación.',
-    'resolved', '2025-05-16 09:00:00', '2025-05-22 09:00:00', 39, 11, 14, 3),
+    'resolved', '2025-05-16 09:00:00', 39, 11, 14),
 (7, 'La figura del Capitán América se vende como completa pero le falta el escudo.',
-    'resolved', '2025-05-20 11:00:00', '2025-05-27 11:00:00', 29, 1,  15, 4);
+    'resolved', '2025-05-20 11:00:00', 29, 1, 15);
 
 -- ============================
 -- MODERATION_ACTIONS
 -- ============================
-INSERT INTO moderation_actions (id_action, decision, notification_sent, action_date, fk_moderator_id, fk_reports_id) VALUES
-(1, 'removed',     1, '2025-05-03 10:00:00', 3, 1),
-(2, 'reactivated', 1, '2025-05-07 11:00:00', 4, 2),
-(3, 'reactivated', 1, '2025-05-12 10:00:00', 5, 3),
-(4, 'removed',     1, '2025-05-22 09:00:00', 3, 6),
-(5, 'removed',     1, '2025-05-27 11:00:00', 4, 7);
+INSERT INTO moderation_actions (id_moderation_actions, decision, action_date, fk_moderator_id, fk_reports_id) VALUES
+(1, 'removed', '2025-05-03 10:00:00', 3, 1),
+(2, 'reactivated', '2025-05-07 11:00:00', 4, 2),
+(3, 'reactivated', '2025-05-12 10:00:00', 5, 3),
+(4, 'removed', '2025-05-22 09:00:00', 3, 6),
+(5, 'removed', '2025-05-27 11:00:00', 4, 7);
 
 -- ============================
 -- NOTIFICATIONS
 -- ============================
-INSERT INTO notifications (id_notifications, notification_type, content, `read`, notification_date, fk_users_id) VALUES
-(1,  'system',     'Tu artículo "Auriculares inalámbricos blancos" ha sido vendido.',                              1, '2024-10-15 15:05:00', 4),
-(2,  'system',     'Tu artículo "Juguete holográfico Harry Potter" ha sido vendido.',                              1, '2024-10-25 12:05:00', 5),
-(3,  'system',     'Tu artículo "Cámara digital infantil" ha sido vendido.',                                      1, '2024-10-20 14:05:00', 6),
-(4,  'system',     'Tu artículo "Walkie talkies para niños" ha sido vendido.',                                    1, '2024-11-01 16:05:00', 7),
-(5,  'system',     'Tu artículo "Consola portátil tipo Switch" ha sido vendido.',                                 1, '2024-11-10 10:05:00', 8),
-(6,  'system',     'Tu artículo "Altavoz inalámbrico rojo" ha sido vendido.',                                     1, '2024-11-12 12:05:00', 8),
-(7,  'system',     'Tu artículo "LEGO City Camión de obras" ha sido vendido.',                                    1, '2024-11-20 15:05:00', 10),
-(8,  'system',     'Tu artículo "LEGO Fortnite Peely" ha sido vendido.',                                          1, '2024-11-25 10:05:00', 13),
-(9,  'system',     'Tu artículo "LEGO Harry Potter Hogwarts" ha sido vendido.',                                   1, '2024-11-28 14:05:00', 15),
-(10, 'system',     'Tu artículo "LEGO Marvel Spider-Man" ha sido vendido.',                                       1, '2024-12-02 16:05:00', 17),
-(11, 'message',    'Tienes un nuevo mensaje de laia.serra sobre "Auriculares inalámbricos blancos".',              1, '2024-10-10 10:06:00', 4),
-(12, 'message',    'Tienes un nuevo mensaje de marta.suarez sobre "Juguete holográfico Harry Potter".',            1, '2024-10-20 11:11:00', 5),
-(13, 'message',    'Tienes un nuevo mensaje de pablo.iglesias94 sobre "Cámara digital infantil".',                 1, '2024-10-15 12:16:00', 6),
-(14, 'message',    'Tienes un nuevo mensaje de lucia.romero sobre "Walkie talkies para niños".',                   1, '2024-10-25 13:21:00', 7),
-(15, 'message',    'Tienes un nuevo mensaje de lucia.romero sobre "Drone infantil azul".',                         1, '2025-03-25 17:21:00', 9),
-(16, 'report',     'Tu artículo "Auriculares infantiles rosa" ha sido denunciado y está bajo revisión.',           1, '2025-04-28 09:05:00', 4),
-(17, 'report',     'Tu artículo "Figura Labubu coleccionable" ha sido denunciado y está bajo revisión.',           0, '2025-05-16 09:05:00', 11),
-(18, 'report',     'Tu artículo "LEGO Marvel Capitán América" ha sido denunciado y está bajo revisión.',           0, '2025-05-20 11:05:00', 1),
-(19, 'report',     'Tu artículo "Figura Baby Yoda edición alternativa" ha sido denunciado y está bajo revisión.', 0, '2025-05-10 11:05:00', 17),
-(20, 'report',     'Tu artículo "Virus!" ha sido denunciado y está bajo revisión.',                                0, '2025-05-14 15:05:00', 8),
-(21, 'moderation', 'Tu artículo "Auriculares infantiles rosa" ha sido eliminado por incumplir las normas.',        1, '2025-05-03 10:05:00', 4),
-(22, 'moderation', 'El artículo "LEGO City Rodillo compactador" ha sido revisado y reactivado.',                   1, '2025-05-07 11:05:00', 10),
-(23, 'moderation', 'El artículo "LEGO Vespa 125 azul clásica" ha sido revisado y reactivado.',                    1, '2025-05-12 10:05:00', 11),
-(24, 'moderation', 'Tu artículo "Figura Labubu coleccionable" ha sido eliminado por incumplir las normas.',        0, '2025-05-22 09:05:00', 11),
-(25, 'moderation', 'Tu artículo "LEGO Marvel Capitán América" ha sido eliminado por incumplir las normas.',        0, '2025-05-27 11:05:00', 1);
+INSERT INTO notifications (id_notifications, message, `read`, created_at, fk_users_id) VALUES
+(1, 'Tu artículo "Auriculares inalámbricos blancos" ha sido vendido.',                              1, '2024-10-15 15:05:00', 4),
+(2, 'Tu artículo "Juguete holográfico Harry Potter" ha sido vendido.',                              1, '2024-10-25 12:05:00', 5),
+(3, 'Tu artículo "Cámara digital infantil" ha sido vendido.',                                      1, '2024-10-20 14:05:00', 6),
+(4, 'Tu artículo "Walkie talkies para niños" ha sido vendido.',                                    1, '2024-11-01 16:05:00', 7),
+(5, 'Tu artículo "Consola portátil tipo Switch" ha sido vendido.',                                 1, '2024-11-10 10:05:00', 8),
+(6, 'Tu artículo "Altavoz inalámbrico rojo" ha sido vendido.',                                     1, '2024-11-12 12:05:00', 8),
+(7, 'Tu artículo "LEGO City Camión de obras" ha sido vendido.',                                    1, '2024-11-20 15:05:00', 10),
+(8, 'Tu artículo "LEGO Fortnite Peely" ha sido vendido.',                                          1, '2024-11-25 10:05:00', 13),
+(9, 'Tu artículo "LEGO Harry Potter Hogwarts" ha sido vendido.',                                   1, '2024-11-28 14:05:00', 15),
+(10, 'Tu artículo "LEGO Marvel Spider-Man" ha sido vendido.',                                       1, '2024-12-02 16:05:00', 17),
+(11, 'Tienes un nuevo mensaje de laia.serra sobre "Auriculares inalámbricos blancos".',              1, '2024-10-10 10:06:00', 4),
+(12, 'Tienes un nuevo mensaje de marta.suarez sobre "Juguete holográfico Harry Potter".',            1, '2024-10-20 11:11:00', 5),
+(13, 'Tienes un nuevo mensaje de pablo.iglesias94 sobre "Cámara digital infantil".',                 1, '2024-10-15 12:16:00', 6),
+(14, 'Tienes un nuevo mensaje de lucia.romero sobre "Walkie talkies para niños".',                   1, '2024-10-25 13:21:00', 7),
+(15, 'Tienes un nuevo mensaje de lucia.romero sobre "Drone infantil azul".',                         1, '2025-03-25 17:21:00', 9),
+(16, 'Tu artículo "Auriculares infantiles rosa" ha sido denunciado y está bajo revisión.',           1, '2025-04-28 09:05:00', 4),
+(17, 'Tu artículo "Figura Labubu coleccionable" ha sido denunciado y está bajo revisión.',           0, '2025-05-16 09:05:00', 11),
+(18, 'Tu artículo "LEGO Marvel Capitán América" ha sido denunciado y está bajo revisión.',           0, '2025-05-20 11:05:00', 1),
+(19, 'Tu artículo "Figura Baby Yoda edición alternativa" ha sido denunciado y está bajo revisión.', 0, '2025-05-10 11:05:00', 17),
+(20, 'Tu artículo "Virus!" ha sido denunciado y está bajo revisión.',                                0, '2025-05-14 15:05:00', 8),
+(21, 'Tu artículo "Auriculares infantiles rosa" ha sido eliminado por incumplir las normas.',        1, '2025-05-03 10:05:00', 4),
+(22, 'El artículo "LEGO City Rodillo compactador" ha sido revisado y reactivado.',                   1, '2025-05-07 11:05:00', 10),
+(23, 'El artículo "LEGO Vespa 125 azul clásica" ha sido revisado y reactivado.',                    1, '2025-05-12 10:05:00', 11),
+(24, 'Tu artículo "Figura Labubu coleccionable" ha sido eliminado por incumplir las normas.',        0, '2025-05-22 09:05:00', 11),
+(25, 'Tu artículo "LEGO Marvel Capitán América" ha sido eliminado por incumplir las normas.',        0, '2025-05-27 11:05:00', 1);
 
 -- ============================
 -- ITEMS_VIEW
 -- ============================
-INSERT INTO items_view (id_items_view, view_date, fk_items_id, fk_users_id) VALUES
+INSERT INTO items_view (id_items_view, viewed_at, fk_items_id, fk_users_id) VALUES
 (1,  '2024-10-02 10:30:00', 1,  8),  (2,  '2024-10-03 11:15:00', 1,  9),
 (3,  '2024-10-05 14:00:00', 1,  14), (4,  '2024-10-04 09:00:00', 2,  9),
 (5,  '2024-10-05 10:30:00', 2,  12), (6,  '2024-10-14 15:00:00', 3,  16),
