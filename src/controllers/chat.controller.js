@@ -1,0 +1,81 @@
+import * as ConversationModel from '../models/conversation.model.js';
+import * as ItemModel from '../models/item.model.js';
+
+async function getConvOrFail(id, userId, res) {
+  const conv = await ConversationModel.getById(id);
+  if (!conv) { res.status(404).json({ error: 'Conversación no encontrada' }); return null; }
+  if (conv.fk_seller_id !== userId && conv.fk_buyer_id !== userId) {
+    res.status(403).json({ error: 'No eres participante de esta conversación' }); return null;
+  }
+  return conv;
+}
+
+export async function startChat(req, res, next) {
+  try {
+    const { fk_product_id } = req.body;
+    if (!fk_product_id) return res.status(400).json({ error: 'fk_product_id es requerido' });
+
+    const item = await ItemModel.getById(Number(fk_product_id));
+    if (!item) return res.status(404).json({ error: 'Artículo no encontrado' });
+    if (item.conservation_status !== 'published')
+      return res.status(409).json({ error: 'Solo se puede iniciar chat sobre artículos publicados' });
+    if (req.user.id_users === item.fk_seller_id)
+      return res.status(400).json({ error: 'No puedes iniciar un chat contigo mismo' });
+
+    const { conversation, created } = await ConversationModel.findOrCreate({
+      fk_items_id: item.id_items, fk_seller_id: item.fk_seller_id, fk_buyer_id: req.user.id_users,
+    });
+    res.status(created ? 201 : 200).json(conversation);
+  } catch (err) { next(err); }
+}
+
+export async function listChats(req, res, next) {
+  try {
+    res.json(await ConversationModel.getUserConversations(req.user.id_users));
+  } catch (err) { next(err); }
+}
+
+export async function getChat(req, res, next) {
+  try {
+    const conv = await getConvOrFail(Number(req.params.id), req.user.id_users, res);
+    if (conv) res.json(conv);
+  } catch (err) { next(err); }
+}
+
+export async function getMessages(req, res, next) {
+  try {
+    const conv = await getConvOrFail(Number(req.params.id), req.user.id_users, res);
+    if (!conv) return;
+    res.json(await ConversationModel.getMessages(conv.id_conversations));
+  } catch (err) { next(err); }
+}
+
+export async function sendMessage(req, res, next) {
+  try {
+    const conv = await getConvOrFail(Number(req.params.id), req.user.id_users, res);
+    if (!conv) return;
+
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'El contenido no puede estar vacío' });
+
+    const senderId = req.user.id_users;
+    const receiverId = senderId === conv.fk_seller_id ? conv.fk_buyer_id : conv.fk_seller_id;
+
+    const message = await ConversationModel.createMessage({
+      fk_conversations_id: conv.id_conversations,
+      fk_users_id_sent: senderId,
+      fk_users_id_received: receiverId,
+      content: content.trim(),
+    });
+    res.status(201).json(message);
+  } catch (err) { next(err); }
+}
+
+export async function markRead(req, res, next) {
+  try {
+    const conv = await getConvOrFail(Number(req.params.id), req.user.id_users, res);
+    if (!conv) return;
+    const updated = await ConversationModel.markAsRead({ conversationId: conv.id_conversations, userId: req.user.id_users });
+    res.json({ updated });
+  } catch (err) { next(err); }
+}
