@@ -7,7 +7,7 @@ export async function getById(id) {
     `SELECT i.*,
             c.name AS category_name,
             u.username, u.first_name, u.last_name, u.profile_picture, u.user_city AS seller_city,
-            (SELECT ip.photo_url FROM items_photos ip WHERE ip.fk_items_id = i.id_items ORDER BY ip.\`order\` ASC LIMIT 1) AS main_photo
+            (SELECT ip.photo_url FROM items_photos ip WHERE ip.fk_items_id = i.id_items ORDER BY ip.photo_order ASC LIMIT 1) AS main_photo
      FROM items i
      JOIN categories c ON c.id_categories = i.fk_categories_id
      JOIN users u ON u.id_users = i.fk_seller_id
@@ -19,7 +19,7 @@ export async function getById(id) {
 
 export async function getPhotos(itemId) {
   const [rows] = await pool.query(
-    'SELECT * FROM items_photos WHERE fk_items_id = ? ORDER BY `order` ASC',
+    'SELECT * FROM items_photos WHERE fk_items_id = ? ORDER BY photo_order ASC',
     [itemId]
   );
   return rows;
@@ -49,7 +49,7 @@ export async function getPublished({ search, categoryId, location, minPrice, max
             i.fk_seller_id, i.fk_categories_id,
             c.name AS category_name,
             u.username, u.first_name, u.last_name,
-            (SELECT ip.photo_url FROM items_photos ip WHERE ip.fk_items_id = i.id_items ORDER BY ip.\`order\` ASC LIMIT 1) AS main_photo
+            (SELECT ip.photo_url FROM items_photos ip WHERE ip.fk_items_id = i.id_items ORDER BY ip.photo_order ASC LIMIT 1) AS main_photo
      FROM items i
      JOIN categories c ON c.id_categories = i.fk_categories_id
      JOIN users u ON u.id_users = i.fk_seller_id
@@ -91,12 +91,12 @@ export async function softDeleteItem(id) {
 
 export async function addPhotos(itemId, urls) {
   const [[{ maxOrder }]] = await pool.query(
-    'SELECT COALESCE(MAX(`order`), 0) AS maxOrder FROM items_photos WHERE fk_items_id = ?',
+    'SELECT COALESCE(MAX(photo_order), 0) AS maxOrder FROM items_photos WHERE fk_items_id = ?',
     [itemId]
   );
   let order = Number(maxOrder);
   const values = urls.map(url => [itemId, url, ++order]);
-  await pool.query('INSERT INTO items_photos (fk_items_id, photo_url, `order`) VALUES ?', [values]);
+  await pool.query('INSERT INTO items_photos (fk_items_id, photo_url, photo_order) VALUES ?', [values]);
   return getPhotos(itemId);
 }
 

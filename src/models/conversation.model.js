@@ -21,7 +21,7 @@ export async function getById(id) {
   const [rows] = await pool.query(
     `SELECT c.*,
             i.title AS item_title, i.price AS item_price,
-            (SELECT ip.photo_url FROM items_photos ip WHERE ip.fk_items_id=c.fk_items_id ORDER BY ip.\`order\` ASC LIMIT 1) AS item_photo,
+            (SELECT ip.photo_url FROM items_photos ip WHERE ip.fk_items_id=c.fk_items_id ORDER BY ip.photo_order ASC LIMIT 1) AS item_photo,
             seller.username AS seller_username, seller.profile_picture AS seller_avatar,
             buyer.username  AS buyer_username,  buyer.profile_picture  AS buyer_avatar
      FROM conversations c
@@ -38,10 +38,10 @@ export async function getUserConversations(userId) {
   const [rows] = await pool.query(
     `SELECT c.*,
             i.title AS item_title, i.price AS item_price,
-            (SELECT ip.photo_url FROM items_photos ip WHERE ip.fk_items_id=c.fk_items_id ORDER BY ip.\`order\` ASC LIMIT 1) AS item_photo,
+            (SELECT ip.photo_url FROM items_photos ip WHERE ip.fk_items_id=c.fk_items_id ORDER BY ip.photo_order ASC LIMIT 1) AS item_photo,
             seller.username AS seller_username,
             buyer.username  AS buyer_username,
-            (SELECT m.content FROM messages m WHERE m.fk_conversations_id=c.id_conversations ORDER BY m.created_at DESC LIMIT 1) AS last_message,
+            (SELECT m.content FROM messages m WHERE m.fk_conversations_id=c.id_conversations ORDER BY m.sent_at DESC LIMIT 1) AS last_message,
             (SELECT COUNT(*) FROM messages m WHERE m.fk_conversations_id=c.id_conversations AND m.fk_users_id_received=? AND m.read=false) AS unread_count
      FROM conversations c
      JOIN items i ON i.id_items=c.fk_items_id
@@ -60,7 +60,7 @@ export async function getMessages(conversationId) {
      FROM messages m
      JOIN users u ON u.id_users=m.fk_users_id_sent
      WHERE m.fk_conversations_id=?
-     ORDER BY m.created_at ASC`,
+     ORDER BY m.sent_at ASC`,
     [conversationId]
   );
   return rows;

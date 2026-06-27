@@ -6,7 +6,7 @@ const BASE_SELECT = `
          i.fk_seller_id,
          u_seller.username AS seller_username, u_seller.first_name AS seller_first_name, u_seller.last_name AS seller_last_name,
          u_buyer.username  AS buyer_username,  u_buyer.first_name  AS buyer_first_name,  u_buyer.last_name  AS buyer_last_name,
-         (SELECT ip.photo_url FROM items_photos ip WHERE ip.fk_items_id = i.id_items ORDER BY ip.\`order\` ASC LIMIT 1) AS main_photo
+         (SELECT ip.photo_url FROM items_photos ip WHERE ip.fk_items_id = i.id_items ORDER BY ip.photo_order ASC LIMIT 1) AS main_photo
   FROM item_history ih
   JOIN items i        ON i.id_items     = ih.fk_items_id
   JOIN users u_seller ON u_seller.id_users = i.fk_seller_id
