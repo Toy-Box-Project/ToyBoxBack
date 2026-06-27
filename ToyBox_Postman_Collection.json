@@ -1,0 +1,753 @@
+{
+  "info": {
+    "name": "ToyBox API",
+    "description": "Colección completa de endpoints para ToyBox Back.\n\n**Flujo recomendado:**\n1. Auth > Register (crea usuario)\n2. Auth > Login (captura el token automáticamente)\n3. Resto de endpoints en orden\n\n**Variables de entorno necesarias:**\n- `base_url` → http://localhost:3000\n- `token` → se rellena automáticamente al hacer Login\n- `admin_token` → pegar manualmente el token de un usuario administrador\n- `product_id`, `reservation_id`, etc. → se rellenan en los tests scripts",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",       "value": "http://localhost:3000" },
+    { "key": "token",          "value": "" },
+    { "key": "admin_token",    "value": "" },
+    { "key": "user_id",        "value": "" },
+    { "key": "product_id",     "value": "" },
+    { "key": "category_id",    "value": "" },
+    { "key": "chat_id",        "value": "" },
+    { "key": "reservation_id", "value": "" },
+    { "key": "order_id",       "value": "" },
+    { "key": "report_product_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"user_birthday\": \"1990-01-15\",\n  \"user_city\": \"Madrid\",\n  \"user_province\": \"Madrid\",\n  \"user_zipcode\": \"28001\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const r = pm.response.json();",
+                  "  pm.collectionVariables.set('token', r.token);",
+                  "  pm.collectionVariables.set('user_id', r.user.id_users);",
+                  "  console.log('Token guardado:', r.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const r = pm.response.json();",
+                  "  pm.collectionVariables.set('token', r.token);",
+                  "  pm.collectionVariables.set('user_id', r.user.id_users);",
+                  "  console.log('Token guardado:', r.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@toybox.com\",\n  \"password\": \"admin123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const r = pm.response.json();",
+                  "  pm.collectionVariables.set('admin_token', r.token);",
+                  "  console.log('Admin token guardado:', r.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🏷️ Categories",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/categories", "host": ["{{base_url}}"], "path": ["categories"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const r = pm.response.json();",
+                  "  if (r.length > 0) pm.collectionVariables.set('category_id', r[0].id_categories);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Category (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/categories", "host": ["{{base_url}}"], "path": ["categories"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Juguetes de madera\",\n  \"description\": \"Juguetes artesanales de madera\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const r = pm.response.json();",
+                  "  pm.collectionVariables.set('category_id', r.id_categories);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Category (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["categories", "{{category_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Juguetes de madera (actualizado)\",\n  \"description\": \"Descripción actualizada\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Category (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["categories", "{{category_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📦 Products",
+      "item": [
+        {
+          "name": "List Products (público)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/products?page=1&limit=12",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "page",       "value": "1" },
+                { "key": "limit",      "value": "12" },
+                { "key": "search",     "value": "", "disabled": true },
+                { "key": "categoryId", "value": "", "disabled": true },
+                { "key": "location",   "value": "", "disabled": true },
+                { "key": "minPrice",   "value": "", "disabled": true },
+                { "key": "maxPrice",   "value": "", "disabled": true },
+                { "key": "sellerId",   "value": "", "disabled": true }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const r = pm.response.json();",
+                  "  if (r.data && r.data.length > 0) pm.collectionVariables.set('product_id', r.data[0].id_items);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Products - con filtros",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/products?search=lego&categoryId=1&minPrice=5&maxPrice=100",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "search",     "value": "lego" },
+                { "key": "categoryId", "value": "1" },
+                { "key": "minPrice",   "value": "5" },
+                { "key": "maxPrice",   "value": "100" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/products/{{product_id}}", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}"] }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/products", "host": ["{{base_url}}"], "path": ["products"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Lego City 1000 piezas\",\n  \"description\": \"Juego de construcción en perfecto estado\",\n  \"price\": 25.99,\n  \"fk_categories_id\": 1,\n  \"location\": \"Madrid\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const r = pm.response.json();",
+                  "  pm.collectionVariables.set('product_id', r.id_items);",
+                  "  console.log('Producto creado con ID:', r.id_items);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/products/{{product_id}}", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Lego City 1000 piezas (actualizado)\",\n  \"description\": \"Descripción actualizada\",\n  \"price\": 22.50,\n  \"fk_categories_id\": 1,\n  \"location\": \"Barcelona\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Upload Images (form-data)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/products/{{product_id}}/images", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}", "images"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "images", "type": "file", "src": [], "description": "Selecciona hasta 5 imágenes" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Publish Product",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/products/{{product_id}}/publish", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}", "publish"] }
+          }
+        },
+        {
+          "name": "Mark Product as Sold",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/products/{{product_id}}/sold", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}", "sold"] }
+          }
+        },
+        {
+          "name": "Report Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/products/{{product_id}}/report", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}", "report"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"El artículo tiene fotos engañosas\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('report_product_id', pm.collectionVariables.get('product_id'));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/products/{{product_id}}", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Users",
+      "item": [
+        {
+          "name": "Get Public Profile",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["users", "{{user_id}}"] }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["users", "{{user_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser_updated\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"Updated\",\n  \"phone_number\": \"612345678\",\n  \"user_city\": \"Barcelona\",\n  \"user_province\": \"Barcelona\",\n  \"user_zipcode\": \"08001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Upload Avatar (form-data)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/users/{{user_id}}/avatar", "host": ["{{base_url}}"], "path": ["users", "{{user_id}}", "avatar"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "avatar", "type": "file", "src": [], "description": "Selecciona una imagen de avatar" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💬 Chats",
+      "item": [
+        {
+          "name": "Start Chat (sobre un producto)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/chats", "host": ["{{base_url}}"], "path": ["chats"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fk_product_id\": {{product_id}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const r = pm.response.json();",
+                  "  pm.collectionVariables.set('chat_id', r.id_conversations);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List My Chats",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/chats", "host": ["{{base_url}}"], "path": ["chats"] }
+          }
+        },
+        {
+          "name": "Get Chat by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/chats/{{chat_id}}", "host": ["{{base_url}}"], "path": ["chats", "{{chat_id}}"] }
+          }
+        },
+        {
+          "name": "Get Chat Messages",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/chats/{{chat_id}}/messages", "host": ["{{base_url}}"], "path": ["chats", "{{chat_id}}", "messages"] }
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/chats/{{chat_id}}/messages", "host": ["{{base_url}}"], "path": ["chats", "{{chat_id}}", "messages"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hola, ¿sigue disponible el artículo?\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Mark Chat as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/chats/{{chat_id}}/read", "host": ["{{base_url}}"], "path": ["chats", "{{chat_id}}", "read"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📅 Reservations",
+      "item": [
+        {
+          "name": "Create Reservation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/reservations", "host": ["{{base_url}}"], "path": ["reservations"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fk_product_id\": {{product_id}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const r = pm.response.json();",
+                  "  pm.collectionVariables.set('reservation_id', r.id_item_history);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Reservations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/reservations/my", "host": ["{{base_url}}"], "path": ["reservations", "my"] }
+          }
+        },
+        {
+          "name": "Cancel Reservation",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/reservations/{{reservation_id}}/cancel", "host": ["{{base_url}}"], "path": ["reservations", "{{reservation_id}}", "cancel"] }
+          }
+        },
+        {
+          "name": "Complete Reservation",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/reservations/{{reservation_id}}/complete", "host": ["{{base_url}}"], "path": ["reservations", "{{reservation_id}}", "complete"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛒 Orders",
+      "item": [
+        {
+          "name": "Get My Purchases",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/orders/purchases", "host": ["{{base_url}}"], "path": ["orders", "purchases"] }
+          }
+        },
+        {
+          "name": "Get My Sales",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/orders/sales", "host": ["{{base_url}}"], "path": ["orders", "sales"] }
+          }
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/orders/{{order_id}}", "host": ["{{base_url}}"], "path": ["orders", "{{order_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "⭐ Reviews",
+      "item": [
+        {
+          "name": "Get Product Reviews (público)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/reviews/product/{{product_id}}", "host": ["{{base_url}}"], "path": ["reviews", "product", "{{product_id}}"] }
+          }
+        },
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/reviews", "host": ["{{base_url}}"], "path": ["reviews"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Artículo en perfectas condiciones, vendedor muy amable\",\n  \"fk_items_id\": {{product_id}},\n  \"fk_reviewed_id\": 2\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "❤️ Favorites",
+      "item": [
+        {
+          "name": "List Favorites",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/favorites", "host": ["{{base_url}}"], "path": ["favorites"] }
+          }
+        },
+        {
+          "name": "Add Favorite",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/favorites/{{product_id}}", "host": ["{{base_url}}"], "path": ["favorites", "{{product_id}}"] }
+          }
+        },
+        {
+          "name": "Remove Favorite",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/favorites/{{product_id}}", "host": ["{{base_url}}"], "path": ["favorites", "{{product_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛡️ Admin",
+      "item": [
+        {
+          "name": "Get Stats",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/stats", "host": ["{{base_url}}"], "path": ["admin", "stats"] }
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/users?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "limit",    "value": "20" },
+                { "key": "role",     "value": "", "disabled": true },
+                { "key": "status",   "value": "", "disabled": true },
+                { "key": "email",    "value": "", "disabled": true },
+                { "key": "username", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/admin/users/{{user_id}}/role", "host": ["{{base_url}}"], "path": ["admin", "users", "{{user_id}}", "role"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"moderator\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Change User Status (block/unblock)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/admin/users/{{user_id}}/active", "host": ["{{base_url}}"], "path": ["admin", "users", "{{user_id}}", "active"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"blocked\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Reports",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/reports?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "reports"],
+              "query": [
+                { "key": "page",  "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Report by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/reports/1", "host": ["{{base_url}}"], "path": ["admin", "reports", "1"] }
+          }
+        },
+        {
+          "name": "Approve Report (reactivar artículo)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/admin/reports/{{report_product_id}}/approve", "host": ["{{base_url}}"], "path": ["admin", "reports", "{{report_product_id}}", "approve"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Reporte revisado, el artículo cumple las normas\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Withdraw Report (eliminar artículo)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/admin/reports/{{report_product_id}}/withdraw", "host": ["{{base_url}}"], "path": ["admin", "reports", "{{report_product_id}}", "withdraw"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Artículo retirado por incumplir las normas de la comunidad\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "✅ Health Check",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
+          }
+        },
+        {
+          "name": "Root",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/", "host": ["{{base_url}}"], "path": [""] }
+          }
+        }
+      ]
+    }
+  ]
+}
