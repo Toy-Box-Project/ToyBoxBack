@@ -2,14 +2,19 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 
-import authRouter from './src/routes/auth.routes.js';
+import authRouter     from './src/routes/auth.routes.js';
 import categoryRouter from './src/routes/category.routes.js';
+import itemRouter     from './src/routes/item.routes.js';
+import userRouter     from './src/routes/user.routes.js';
+import adminRouter    from './src/routes/admin.routes.js';
+import chatRouter     from './src/routes/chat.routes.js';
 import { errorHandler } from './src/middlewares/errorHandler.js';
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 app.get('/', (_req, res) => {
   res.send('ToyBox API funcionando 🧸');
@@ -20,8 +25,12 @@ app.get('/health', (_req, res) => {
 });
 
 // Rutas
-app.use('/auth', authRouter);
+app.use('/auth',       authRouter);
 app.use('/categories', categoryRouter);
+app.use('/products',   itemRouter);
+app.use('/users',      userRouter);
+app.use('/admin',      adminRouter);
+app.use('/chats',      chatRouter);
 
 // Manejo global de errores
 app.use(errorHandler);
