@@ -4,10 +4,6 @@ import cors from 'cors';
 
 import authRouter from './src/routes/auth.routes.js';
 import categoryRouter from './src/routes/category.routes.js';
-import itemRouter from './src/routes/item.routes.js';
-import userRouter from './src/routes/user.routes.js';
-import adminRouter from './src/routes/admin.routes.js';
-import chatRouter from './src/routes/chat.routes.js';
 import { errorHandler } from './src/middlewares/errorHandler.js';
 
 const app = express();
@@ -23,16 +19,9 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
-// Archivos estáticos (imágenes subidas)
-app.use('/uploads', express.static('uploads'));
-
 // Rutas
 app.use('/auth', authRouter);
 app.use('/categories', categoryRouter);
-app.use('/products', itemRouter);
-app.use('/users', userRouter);
-app.use('/admin', adminRouter);
-app.use('/chats', chatRouter);
 
 // Manejo global de errores
 app.use(errorHandler);
