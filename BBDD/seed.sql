@@ -733,4 +733,218 @@ INSERT INTO items_view (id_items_view, viewed_at, fk_items_id, fk_users_id) VALU
 (113,'2025-05-02 12:00:00', 93, 11), (114,'2025-05-05 13:00:00', 94, 19),
 (115,'2025-05-08 14:00:00', 95, 14), (116,'2025-05-10 15:00:00', 95, 20);
 
+-- ============================================================
+-- DEMO SUPPLEMENT — Casos de uso faltantes (ERS v1.0)
+-- ============================================================
+-- Cubre: RF-03 (ciclo draft/reserved), RF-05 (mensajes no leídos),
+--        RF-06 (reservas pending/cancelled), RF-08 (usuarios bloqueados)
+-- Usuarios de referencia para demo:
+--   user  → clara.nunez     (id=8)  / pablo.iglesias94 (id=9)
+--   mod   → mod_ricardo     (id=3)
+--   admin → admin_carlosm   (id=1)
+-- ============================================================
+
+
+-- ============================
+-- USUARIOS BLOQUEADOS (RF-08 / CU-09)
+-- Panel de admin: "activar y desactivar cuentas de usuario"
+-- ============================
+UPDATE users SET status = 'blocked' WHERE id_users = 18;  -- nuria.campos  → demo cuenta desactivada
+UPDATE users SET status = 'blocked' WHERE id_users = 19;  -- ivan.rey       → demo cuenta desactivada
+
+
+-- ============================
+-- ITEMS EN BORRADOR (RF-03 — estado draft)
+-- "Al crear un artículo, entra en estado Borrador.
+--  El usuario debe publicarlo explícitamente."
+-- Clara y Pablo tienen 2 borradores que aún no han publicado.
+-- ============================
+INSERT INTO items (id_items, title, description, price, conservation_status, location, publication_date, fk_seller_id, fk_categories_id, item_update, item_status) VALUES
+(96, 'Ticket to Ride Europa',
+     'Juego Ticket to Ride Europa. Tablero, trenes y cartas completos. Muy buen estado, jugado 3 veces.',
+     15.00, 'draft', 'Madrid',    NULL, 8, 5, '2025-06-01 10:00:00', 'available'),
+(97, 'Figura articulada Iron Man Mark III',
+     'Figura articulada de Iron Man con armadura Mark III. Articulaciones firmes, sin daños. Uso mínimo.',
+     12.00, 'draft', 'Madrid',    NULL, 9, 3, '2025-06-03 11:00:00', 'available');
+
+-- Fotos para los borradores (visibles en "mis artículos")
+INSERT INTO items_photos (photo_url, photo_order, fk_items_id) VALUES
+('https://res.cloudinary.com/dwabpg7an/image/upload/v1782394924/ITEM-0052-1_clkdtx.jpg', 1, 96),
+('https://res.cloudinary.com/dwabpg7an/image/upload/v1782394785/ITEM-0037-1_vkgqsc.jpg', 1, 97);
+
+
+-- ============================
+-- ITEMS EN RESERVADO (RF-06 — Sistema de reservas / CU-05)
+-- "Al crear una reserva, el artículo pasa a estado Reservado."
+-- ============================
+INSERT INTO items (id_items, title, description, price, conservation_status, location, publication_date, fk_seller_id, fk_categories_id, item_update, item_status) VALUES
+(98, 'LEGO City Comisaría de Policía',
+     'Set LEGO City con comisaría, coche patrulla y 4 figuras de policía. Completo con instrucciones. Uso normal.',
+     18.00, 'reserved', 'Zaragoza', '2025-05-15 09:00:00', 11, 2, '2025-05-20 10:00:00', 'available'),
+(99, 'Cluedo clásico edición española',
+     'Juego Cluedo edición clásica. Todas las piezas incluidas: sobres secretos, tablero y fichas. Muy buen estado.',
+     10.00, 'reserved', 'Bilbao',   '2025-05-18 10:00:00', 12, 5, '2025-05-25 11:00:00', 'available');
+
+-- Fotos para los items reservados
+INSERT INTO items_photos (photo_url, photo_order, fk_items_id) VALUES
+('https://res.cloudinary.com/dwabpg7an/image/upload/v1782394666/ITEM-0021-1_wwqflc.jpg', 1, 98),
+('https://res.cloudinary.com/dwabpg7an/image/upload/v1782394926/ITEM-0053-1_ojbr10.jpg', 1, 99);
+
+-- Vistas previas antes de ser reservados
+INSERT INTO items_view (id_items_view, viewed_at, fk_items_id, fk_users_id) VALUES
+(117, '2025-05-16 10:00:00', 98, 14),
+(118, '2025-05-17 11:30:00', 98, 15),
+(119, '2025-05-20 09:00:00', 99, 13),
+(120, '2025-05-23 14:00:00', 99, 14);
+
+
+-- ============================
+-- ITEM_HISTORY — Reservas pending y cancelled (RF-06)
+-- ============================
+INSERT INTO item_history (id_item_history, trade_status, trade_date, fk_items_id, fk_buyer_id) VALUES
+(31, 'pending',   '2025-05-20 10:00:00', 98, 14),  -- marta.suarez reservó LEGO Comisaría (activa)
+(32, 'pending',   '2025-05-25 11:00:00', 99, 15),  -- carlos.navarro reservó Cluedo (activa)
+(33, 'cancelled', '2025-04-10 12:00:00', 19, 14);  -- marta.suarez canceló LEGO Cherry Blossoms
+                                                    -- → item 19 volvió a 'published' (flujo RF-03)
+
+
+-- ============================
+-- CONVERSACIONES — Para items reservados (RF-05)
+-- ============================
+INSERT INTO conversations (id_conversations, created_at, fk_items_id, fk_seller_id, fk_buyer_id) VALUES
+(31, '2025-05-19 09:30:00', 98, 11, 14),  -- LEGO Comisaría: diego.castro → marta.suarez
+(32, '2025-05-24 10:00:00', 99, 12, 15);  -- Cluedo: elena.vega → carlos.navarro
+
+
+-- ============================
+-- MENSAJES — Conversaciones vacías + nuevas (RF-05 / CU-04)
+-- Convs sin mensajes: 9-27, 29. Nuevas: 31, 32.
+-- Mensajes con read=0 → demo del badge de no leídos para usuarios clave:
+--   clara.nunez  (id=8):  unread en conv 13 (vendedora), conv 16 y 26 (compradora)
+--   pablo.iglesias94 (id=9): unread en conv 27
+--   diego.castro (id=11): unread en conv 22 y 29
+-- ============================
+INSERT INTO messages (id_messages, content, sent_at, `read`, fk_users_id_sent, fk_users_id_received, fk_conversations_id) VALUES
+
+-- Conv 9: item 25 LEGO Hogwarts — seller=15 (carlos.navarro), buyer=13 (raul.jimenez)
+(37, '¿El set de Hogwarts incluye el libro de instrucciones original?',  '2024-11-22 18:15:00', 1, 13, 15, 9),
+(38, 'Sí, instrucciones completas y en perfecto estado.',                '2024-11-22 19:00:00', 1, 15, 13, 9),
+
+-- Conv 10: item 27 LEGO Spider-Man — seller=17 (jorge.gil), buyer=15 (carlos.navarro)
+(39, '¿La figura tiene todas las articulaciones en buen estado?',        '2024-11-26 09:20:00', 1, 15, 17, 10),
+(40, 'Sí, perfectas. Sin ningún daño ni desgaste.',                      '2024-11-26 10:05:00', 1, 17, 15, 10),
+
+-- Conv 11: item 30 LEGO Technic — seller=2 (admin_laura), buyer=11 (diego.castro)
+(41, 'Hola, ¿el todoterreno Technic tiene la suspensión funcional?',     '2024-12-03 10:20:00', 1, 11, 2,  11),
+(42, 'Sí, suspensión y tracción funcionan perfectamente. Es precioso.',  '2024-12-03 11:00:00', 1, 2,  11, 11),
+
+-- Conv 12: item 32 Monster High — seller=4 (mod_sara), buyer=9 (pablo.iglesias94)
+(43, '¿La Monster High lleva toda la ropa y accesorios originales?',    '2024-12-08 11:20:00', 1, 9,  4,  12),
+(44, 'Sí, ropa y accesorios completos, todo en perfecto estado.',        '2024-12-08 12:00:00', 1, 4,  9,  12),
+(45, 'Perfecto, me la quedo. ¿Puedo recogerla esta semana?',             '2024-12-08 12:30:00', 1, 9,  4,  12),
+(46, 'Claro, dime el día que te venga bien.',                            '2024-12-08 13:00:00', 1, 4,  9,  12),
+
+-- Conv 13: item 36 T-Rex — seller=8 (clara.nunez), buyer=13 (raul.jimenez)
+(47, 'Hola Clara, ¿el T-Rex tiene las patas y la mandíbula en buen estado?', '2024-12-20 12:20:00', 1, 13, 8, 13),
+(48, 'Sí, patas firmes y mandíbula móvil sin daños. Muy poco uso.',          '2024-12-20 13:00:00', 1, 8,  13, 13),
+(49, '¿Tienes la caja original? Lo pregunto para guardarlo.',                 '2024-12-20 13:25:00', 0, 13, 8,  13),  -- UNREAD → clara (vendedora)
+
+-- Conv 14: item 38 figura cantante — seller=10 (lucia.romero), buyer=14 (marta.suarez)
+(50, '¿El escenario se monta fácil y es estable?',                      '2024-12-27 13:20:00', 1, 14, 10, 14),
+(51, 'Sí, se monta en segundos y aguanta bien.',                         '2024-12-27 14:00:00', 1, 10, 14, 14),
+
+-- Conv 15: item 41 Pokémon — seller=13 (raul.jimenez), buyer=15 (carlos.navarro)
+(52, '¿Están todas las figuras? ¿Cuántas incluye el set?',               '2025-01-03 14:20:00', 1, 15, 13, 15),
+(53, 'Son 6 figuras, todas en buen estado y con colores vivos.',          '2025-01-03 15:00:00', 1, 13, 15, 15),
+
+-- Conv 16: item 44 Baby Yoda — seller=16 (laia.serra), buyer=8 (clara.nunez) ← DEMO clara compradora
+(54, '¡Hola! ¿La túnica de Baby Yoda está en buen estado?',             '2025-01-08 15:20:00', 1, 8,  16, 16),
+(55, 'Perfecta, solo lo he tenido expuesto en vitrina.',                  '2025-01-08 16:00:00', 1, 16, 8,  16),
+(56, '¿Admites Bizum para el pago?',                                      '2025-01-08 16:30:00', 1, 8,  16, 16),
+(57, 'Claro, sin problema. ¿Te lo reservo?',                              '2025-01-08 17:05:00', 0, 16, 8,  16),  -- UNREAD → clara (compradora)
+
+-- Conv 17: item 46 Puzzle España — seller=3 (mod_ricardo), buyer=12 (elena.vega)
+(58, '¿El puzzle de España tiene todas las piezas? ¿Lo has contado?',   '2025-01-13 16:20:00', 1, 12, 3,  17),
+(59, 'Sí, lo conté antes de publicarlo. Completo al 100%.',               '2025-01-13 17:00:00', 1, 3,  12, 17),
+
+-- Conv 18: item 48 Puzzle Stitch — seller=5 (mod_mario), buyer=16 (laia.serra)
+(60, 'Hola, ¿las piezas están en buenas condiciones, sin doblar?',       '2025-01-18 17:20:00', 1, 16, 5,  18),
+(61, 'Ninguna doblada ni deteriorada. Muy poco uso.',                     '2025-01-18 18:00:00', 1, 5,  16, 18),
+
+-- Conv 19: item 50 Puzzle Avengers — seller=7 (mod_javier), buyer=9 (pablo.iglesias94)
+(62, '¿Es el puzzle de 500 piezas o el de 1000?',                        '2025-01-23 18:20:00', 1, 9,  7,  19),
+(63, 'Es de 500 piezas, perfecto para niños de 8 años.',                  '2025-01-23 19:00:00', 1, 7,  9,  19),
+
+-- Conv 20: item 52 Dixit — seller=3 (mod_ricardo), buyer=10 (lucia.romero)
+(64, '¿Las cartas de Dixit están en buen estado, sin manchas?',           '2025-01-28 09:20:00', 1, 10, 3,  20),
+(65, 'Perfectas, las guardé con fundas. Sin ningún daño.',                '2025-01-28 10:00:00', 1, 3,  10, 20),
+
+-- Conv 21: item 55 Sushi Go! — seller=6 (mod_ana), buyer=11 (diego.castro)
+(66, '¿Incluye el manual de reglas en español?',                          '2025-02-03 10:20:00', 1, 11, 6,  21),
+(67, 'Sí, manual en español e inglés incluidos.',                         '2025-02-03 11:00:00', 1, 6,  11, 21),
+
+-- Conv 22: item 60 Catan — seller=11 (diego.castro), buyer=12 (elena.vega)
+(68, 'Hola, ¿el Catan incluye la expansión de puertos o es solo la base?', '2025-02-08 11:20:00', 1, 12, 11, 22),
+(69, 'Es la versión base, pero completo al 100%. Sin piezas faltantes.',    '2025-02-08 12:00:00', 1, 11, 12, 22),
+(70, 'Perfecto. ¿Puedo recogerlo en Bilbao esta semana?',                   '2025-02-08 12:35:00', 0, 12, 11, 22),  -- UNREAD → diego (vendedor)
+
+-- Conv 23: item 62 Tablet educativa — seller=3 (mod_ricardo), buyer=13 (raul.jimenez)
+(71, '¿La tablet tiene la batería en buen estado?',                       '2025-02-15 12:20:00', 1, 13, 3,  23),
+(72, 'Sí, aguanta bien la carga. Pantalla sin arañazos.',                  '2025-02-15 13:00:00', 1, 3,  13, 23),
+
+-- Conv 24: item 65 Cuentacuentos — seller=6 (mod_ana), buyer=14 (marta.suarez)
+(73, '¿El cuentacuentos tiene varios cuentos o solo uno?',                '2025-02-20 13:20:00', 1, 14, 6,  24),
+(74, 'Tiene 12 cuentos en 6 idiomas. Funciona perfecto.',                  '2025-02-20 14:00:00', 1, 6,  14, 24),
+
+-- Conv 25: item 69 Moto correpasillos — seller=10 (lucia.romero), buyer=15 (carlos.navarro)
+(75, '¿El manillar de la moto está firme o tiene algo de holgura?',       '2025-02-28 14:20:00', 1, 15, 10, 25),
+(76, 'Completamente firme, sin ninguna holgura.',                          '2025-02-28 15:00:00', 1, 10, 15, 25),
+
+-- Conv 26: item 72 Hot Wheels — seller=3 (mod_ricardo), buyer=8 (clara.nunez) ← DEMO clara compradora
+(77, 'Hola, ¿la pista Hot Wheels viene con todas las piezas y el dinosaurio?', '2025-03-08 15:20:00', 1, 8, 3, 26),
+(78, 'Sí, completa con el dinosaurio lanzador y pistas originales.',            '2025-03-08 16:05:00', 0, 3, 8, 26),  -- UNREAD → clara (compradora)
+
+-- Conv 27: item 75 Coche todoterreno — seller=6 (mod_ana), buyer=9 (pablo.iglesias94) ← DEMO pablo
+(79, '¿El coche tiene las ruedas en buen estado y no tiene grietas?',     '2025-03-15 16:20:00', 1, 9,  6,  27),
+(80, 'Ruedas firmes y sin grietas. Estructura en perfecto estado.',        '2025-03-15 17:05:00', 0, 6,  9,  27),  -- UNREAD → pablo (comprador)
+
+-- Conv 29: item 82 Pizarra magnética — seller=3 (mod_rico), buyer=11 (diego.castro) ← DEMO diego
+(81, '¿La pizarra incluye el rotulador magnético y el borrador?',          '2025-04-06 18:20:00', 1, 11, 3,  29),
+(82, 'Sí, rotulador y borrador originales incluidos.',                     '2025-04-06 19:05:00', 0, 3,  11, 29),  -- UNREAD → diego (comprador)
+
+-- Conv 31: item 98 LEGO Comisaría (reserved) — seller=11 (diego.castro), buyer=14 (marta.suarez)
+(83, '¿El LEGO de la comisaría tiene todas las figuras de policía?',       '2025-05-19 09:45:00', 1, 14, 11, 31),
+(84, 'Sí, 4 figuras incluidas. Completo con instrucciones originales.',    '2025-05-19 10:30:00', 1, 11, 14, 31),
+(85, 'Perfecto, lo reservo. ¿Tienes disponible esta semana para quedar?',  '2025-05-19 11:00:00', 1, 14, 11, 31),
+(86, 'Sí, queda reservado para ti. Escríbeme para concretar.',             '2025-05-20 09:05:00', 0, 11, 14, 31),  -- UNREAD → marta (compradora)
+
+-- Conv 32: item 99 Cluedo (reserved) — seller=12 (elena.vega), buyer=15 (carlos.navarro)
+(87, '¿El Cluedo incluye todos los sobres secretos intactos?',             '2025-05-24 10:15:00', 1, 15, 12, 32),
+(88, 'Sí, sobres intactos y todas las fichas completas.',                  '2025-05-24 11:00:00', 1, 12, 15, 32),
+(89, 'Me lo reservo. ¿Puedo pasar a buscarlo el sábado?',                  '2025-05-24 11:30:00', 1, 15, 12, 32),
+(90, 'El sábado perfecto, te lo guardo sin falta.',                        '2025-05-25 10:05:00', 0, 12, 15, 32);  -- UNREAD → carlos (comprador)
+
+
+-- ============================
+-- NOTIFICACIONES — Escenarios nuevos
+-- ============================
+INSERT INTO notifications (id_notifications, message, `read`, created_at, fk_users_id) VALUES
+-- Clara (id=8): 3 mensajes no leídos (vendedora conv 13, compradora conv 16 y 26)
+(26, 'Tienes un nuevo mensaje de raul.jimenez sobre "Dinosaurio T-Rex articulado".',       0, '2024-12-20 13:26:00', 8),
+(27, 'Tienes un nuevo mensaje de laia.serra sobre "Figura Baby Yoda (Grogu)".',            0, '2025-01-08 17:06:00', 8),
+(28, 'Tienes un nuevo mensaje de mod_ricardo sobre "Hot Wheels pista dinosaurio".',        0, '2025-03-08 16:06:00', 8),
+-- Pablo (id=9): 1 mensaje no leído (conv 27)
+(29, 'Tienes un nuevo mensaje de mod_ana sobre "Coche rojo todoterreno".',                 0, '2025-03-15 17:06:00', 9),
+-- Diego (id=11): 2 mensajes no leídos (conv 22 como vendedor, conv 29 como comprador)
+(30, 'Tienes un nuevo mensaje de elena.vega sobre "Catan".',                               0, '2025-02-08 12:36:00', 11),
+(31, 'Tienes un nuevo mensaje de mod_ricardo sobre "Pizarra magnética infantil".',         0, '2025-04-06 19:06:00', 11),
+-- Marta (id=14): 1 mensaje no leído conv 31 (item reservado)
+(32, 'Tienes un nuevo mensaje de diego.castro sobre "LEGO City Comisaría de Policía".',   0, '2025-05-20 09:06:00', 14),
+-- Carlos (id=15): 1 mensaje no leído conv 32 (item reservado)
+(33, 'Tienes un nuevo mensaje de elena.vega sobre "Cluedo clásico edición española".',    0, '2025-05-25 10:06:00', 15),
+-- Nuria y Ivan: notificación de cuenta suspendida (visible en panel admin)
+(34, 'Tu cuenta ha sido suspendida temporalmente por incumplimiento de las normas de uso.', 0, '2025-05-28 09:00:00', 18),
+(35, 'Tu cuenta ha sido suspendida temporalmente por incumplimiento de las normas de uso.', 0, '2025-05-28 09:05:00', 19);
+
+
 SET FOREIGN_KEY_CHECKS = 1;
