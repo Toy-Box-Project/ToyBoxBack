@@ -1,6 +1,8 @@
 import 'dotenv/config';
+import { createServer } from 'http';
 import express from 'express';
 import cors from 'cors';
+import { initSocket } from './src/sockets/chat.socket.js';
 
 import authRouter from './src/routes/auth.routes.js';
 import categoryRouter from './src/routes/category.routes.js';
@@ -16,6 +18,10 @@ import notificationRouter from './src/routes/notification.routes.js';
 import { errorHandler } from './src/middlewares/errorHandler.js';
 
 const app = express();
+const httpServer = createServer(app);
+
+// Inicializar Socket.io sobre el servidor HTTP
+initSocket(httpServer);
 
 app.use(cors());
 app.use(express.json());
@@ -46,6 +52,6 @@ app.use('/notifications', notificationRouter);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
