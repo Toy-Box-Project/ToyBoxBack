@@ -1,5 +1,6 @@
 import * as ConversationModel from '../models/conversation.model.js';
 import * as ItemModel from '../models/item.model.js';
+import { emitNewMessage } from '../sockets/chat.socket.js';
 
 async function getConvOrFail(id, userId, res) {
   const conv = await ConversationModel.getById(id);
@@ -67,6 +68,10 @@ export async function sendMessage(req, res, next) {
       fk_users_id_received: receiverId,
       content: content.trim(),
     });
+
+    // Emitir en tiempo real a todos los participantes de la conversación
+    emitNewMessage(conv.id_conversations, message);
+
     res.status(201).json(message);
   } catch (err) { next(err); }
 }
