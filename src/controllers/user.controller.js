@@ -2,6 +2,14 @@ import path from 'path';
 import fs from 'fs';
 import * as UserModel from '../models/user.model.js';
 
+export async function getMyProfile(req, res, next) {
+  try {
+    const user = await UserModel.findById(req.user.id_users);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    res.json(user);
+  } catch (err) { next(err); }
+}
+
 export async function getPublicProfile(req, res, next) {
   try {
     const user = await UserModel.getPublicProfile(Number(req.params.id));
@@ -54,6 +62,20 @@ export async function uploadAvatar(req, res, next) {
     fs.writeFileSync(path.join(uploadsDir, filename), req.file.buffer);
 
     res.json(await UserModel.updateAvatar(id, `/uploads/avatars/${filename}`));
+  } catch (err) { next(err); }
+}
+
+export async function deleteAccount(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    if (req.user.id_users !== id)
+      return res.status(403).json({ error: 'Solo puedes eliminar tu propia cuenta' });
+
+    const existing = await UserModel.findById(id);
+    if (!existing) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    await UserModel.deactivateAccount(id);
+    res.status(204).send();
   } catch (err) { next(err); }
 }
 
