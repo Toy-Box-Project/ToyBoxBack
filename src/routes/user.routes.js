@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import { authenticate } from '../middlewares/auth.js';
 import { upload } from '../middlewares/upload.js';
 import { validate } from '../middlewares/validate.js';
-import { getPublicProfile, updateProfile, uploadAvatar } from '../controllers/user.controller.js';
+import { getMyProfile, getPublicProfile, updateProfile, uploadAvatar,deleteAccount } from '../controllers/user.controller.js';
 
 const router = Router();
 
@@ -18,8 +18,12 @@ const updateProfileRules = [
   body('user_birthday').optional().isDate().withMessage('user_birthday debe ser una fecha válida (YYYY-MM-DD)'),
 ];
 
+router.get('/me', authenticate, getMyProfile);
+
 router.get('/:id', getPublicProfile);
 router.put('/:id',            authenticate, updateProfileRules, validate, updateProfile);
 router.patch('/:id/avatar',   authenticate, upload.single('avatar'), uploadAvatar);
+
+router.delete('/:id',         authenticate, deleteAccount); 
 
 export default router;

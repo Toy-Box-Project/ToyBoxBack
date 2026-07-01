@@ -57,6 +57,20 @@ export async function updateAvatar(id, avatarUrl) {
   return findById(id);
 }
 
+export async function deactivateAccount(id) {
+  await pool.query(
+    `UPDATE users
+        SET email = CONCAT('deleted_', id_users, '@toybox.local'),
+            username = CONCAT('usuario_eliminado_', id_users),
+            password = SHA2(CONCAT(NOW(), RAND()), 256),
+            phone_number = NULL,
+            profile_picture = NULL,
+            status = 'blocked'
+      WHERE id_users = ?`,
+    [id]
+  );
+}
+
 export async function getAllUsers({ username, email, role, status, page = 1, limit = 20 } = {}) {
   const conditions = [];
   const params = [];
