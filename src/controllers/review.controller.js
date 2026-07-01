@@ -41,3 +41,73 @@ export async function getProductReviews(req, res, next) {
     res.json(await ReviewModel.getByProduct(Number(req.params.productId)));
   } catch (err) { next(err); }
 }
+
+
+export async function getByReviewer(req, res, next) {
+  try {
+    const reviews = await ReviewModel.getByReviewer(Number(req.params.reviewerId));
+    
+    const enrichedReviews = await Promise.all(
+      reviews.map(async (review) => {
+        if (review.fk_items_id) {
+          const item = await ItemModel.getById(review.fk_items_id);
+          return {
+            ...review,
+            item: item ? {
+              id_items: item.id_items,
+              title: item.title,
+              price: item.price,
+              images: item.images || []
+            } : null
+          };
+        }
+        return review;
+      })
+    );
+
+    res.json(enrichedReviews);
+  } catch (err) { 
+    next(err); 
+  }
+}
+
+export async function getBySeller(req, res, next) {
+  try {
+    const reviews = await ReviewModel.getBySeller(Number(req.params.sellerId));
+    
+    const enrichedReviews = await Promise.all(
+      reviews.map(async (review) => {
+        if (review.fk_items_id) {
+          const item = await ItemModel.getById(review.fk_items_id);
+          return {
+            ...review,
+            item: item ? {
+              id_items: item.id_items,
+              title: item.title,
+              price: item.price,
+              images: item.images || []
+            } : null
+          };
+        }
+        return review;
+      })
+    );
+
+    res.json(enrichedReviews);
+  } catch (err) { 
+    next(err); 
+  }
+}
+
+export async function getProductAverageRating(req, res, next) {
+  try {
+    const average = await ReviewModel.getAverageRatingByProduct(Number(req.params.productId));
+    
+    res.json({
+      averageRating: average.averageRating || 0,
+      totalReviews: average.totalReviews || 0
+    });
+  } catch (err) {
+    next(err);
+  }
+}
