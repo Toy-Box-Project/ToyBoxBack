@@ -1,6 +1,12 @@
-import path from 'path';
-import fs from 'fs';
+import cloudinary, { uploadBufferToCloudinary } from '../config/cloudinary.js';
 import * as UserModel from '../models/user.model.js';
+
+// Carpeta fija en Cloudinary para las fotos de perfil de usuario
+const PROFILE_FOLDER = 'toybox_images/users/profile';
+
+function avatarPublicId(id) {
+  return `${PROFILE_FOLDER}/user_${id}`;
+}
 
 export async function getMyProfile(req, res, next) {
   try {
@@ -56,12 +62,17 @@ export async function uploadAvatar(req, res, next) {
     if (!req.file)
       return res.status(400).json({ error: 'No se ha enviado ninguna imagen' });
 
-    const uploadsDir = path.resolve('uploads/avatars');
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-    const filename = `${Date.now()}-${req.file.originalname.replace(/\s/g, '_')}`;
-    fs.writeFileSync(path.join(uploadsDir, filename), req.file.buffer);
+    // Sube el avatar a Cloudinary en toybox_images/users/profile. public_id fijo
+    // por usuario + overwrite:true, así cada nueva foto reemplaza la anterior
+    // en vez de acumular archivos sueltos en esa carpeta.
+    const result = await uploadBufferToCloudinary(req.file.buffer, {
+      folder: PROFILE_FOLDER,
+      public_id: `user_${id}`,
+      overwrite: true,
+      resource_type: 'image',
+    });
 
-    res.json(await UserModel.updateAvatar(id, `/uploads/avatars/${filename}`));
+    res.json(await UserModel.updateAvatar(id, result.secure_url));
   } catch (err) { next(err); }
 }
 
@@ -73,6 +84,14 @@ export async function deleteAccount(req, res, next) {
 
     const existing = await UserModel.findById(id);
     if (!existing) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    if (existing.profile_picture) {
+      try {
+        await cloudinary.uploader.destroy(avatarPublicId(id));
+      } catch (e) {
+        // No bloqueamos la baja de cuenta si Cloudinary falla al borrar
+      }
+    }
 
     await UserModel.deactivateAccount(id);
     res.status(204).send();
