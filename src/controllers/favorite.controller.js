@@ -3,7 +3,19 @@ import * as ItemModel from '../models/item.model.js';
 
 export async function listFavorites(req, res, next) {
   try {
-    res.json(await FavoriteModel.getFavorites(req.user.id_users));
+    const favorites = await FavoriteModel.getFavorites(req.user.id_users);
+    
+    const enrichedFavorites = await Promise.all(
+      favorites.map(async (fav) => {
+        const item = await ItemModel.getById(fav.id_items);
+        return {
+          ...fav,
+          images: item?.images || []
+        };
+      })
+    );
+    
+    res.json(enrichedFavorites);
   } catch (err) { next(err); }
 }
 

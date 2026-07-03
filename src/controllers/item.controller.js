@@ -1,6 +1,8 @@
-import path from 'path';
-import fs from 'fs';
+import { uploadBufferToCloudinary } from '../config/cloudinary.js';
 import * as ItemModel from '../models/item.model.js';
+
+// Carpeta fija en Cloudinary para las fotos de productos (create/edit product)
+const PRODUCT_FOLDER = 'toybox_images/users/products';
 
 export async function listProducts(req, res, next) {
   try {
@@ -104,14 +106,18 @@ export async function uploadImages(req, res, next) {
     if (existing.length + req.files.length > 5)
       return res.status(400).json({ error: `Solo se permiten hasta 5 imágenes (ya tiene ${existing.length})` });
 
-    const uploadsDir = path.resolve('uploads/items');
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-    const urls = req.files.map(file => {
-      const filename = `${Date.now()}-${file.originalname.replace(/\s/g, '_')}`;
-      fs.writeFileSync(path.join(uploadsDir, filename), file.buffer);
-      return `/uploads/items/${filename}`;
-    });
+    // Sube cada imagen a Cloudinary en toybox_images/users/products. Puede haber
+    // varias fotos por producto (hasta 5), así que cada una lleva un public_id
+    // único (item + timestamp + índice) en vez de un id fijo con overwrite.
+    const uploads = req.files.map((file, index) =>
+      uploadBufferToCloudinary(file.buffer, {
+        folder: PRODUCT_FOLDER,
+        public_id: `item_${id}_${Date.now()}_${index}`,
+        resource_type: 'image',
+      })
+    );
+    const results = await Promise.all(uploads);
+    const urls = results.map(r => r.secure_url);
 
     const photos = await ItemModel.addPhotos(id, urls);
     res.status(201).json(photos);

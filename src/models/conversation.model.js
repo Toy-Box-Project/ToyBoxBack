@@ -66,20 +66,27 @@ export async function getMessages(conversationId) {
   return rows;
 }
 
+
 export async function createMessage({ fk_conversations_id, fk_users_id_sent, fk_users_id_received, content }) {
   const [result] = await pool.query(
-    `INSERT INTO messages (fk_conversations_id, fk_users_id_sent, fk_users_id_received, content, read)
-     VALUES (?, ?, ?, ?, false)`,
+    // `INSERT INTO messages (fk_conversations_id, fk_users_id_sent, fk_users_id_received, content, read)
+    //  VALUES (?, ?, ?, ?, false)`,
+    `INSERT INTO messages (fk_conversations_id, fk_users_id_sent, fk_users_id_received, content, \`read\`)
+    VALUES (?, ?, ?, ?, 0)`,  // ← Cambiar "false" por "0"
     [fk_conversations_id, fk_users_id_sent, fk_users_id_received, content]
   );
   const [rows] = await pool.query('SELECT * FROM messages WHERE id_messages=? LIMIT 1', [result.insertId]);
   return rows[0];
 }
 
+// MODIFICADO 
 export async function markAsRead({ conversationId, userId }) {
   const [result] = await pool.query(
-    `UPDATE messages SET read=true WHERE fk_conversations_id=? AND fk_users_id_received=? AND read=false`,
+    // `UPDATE messages SET read=true WHERE fk_conversations_id=? AND fk_users_id_received=? AND read=false`,
+    `UPDATE messages SET \`read\`=1 WHERE fk_conversations_id=? AND fk_users_id_received=? AND \`read\`=0`,
     [conversationId, userId]
   );
   return result.affectedRows;
 }
+
+

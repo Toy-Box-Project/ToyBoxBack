@@ -14,7 +14,19 @@ export async function getById(id) {
      WHERE i.id_items = ? LIMIT 1`,
     [id]
   );
-  return rows[0] ?? null;
+  const item = rows[0] ?? null;
+  if (item) {
+
+    const photos = await getPhotos(id);
+    item.images = photos.map(p => ({
+      id_photos: p.id_items_photos,
+      photo_url: p.photo_url,
+      order: p.photo_order,
+      fk_items_id: p.fk_items_id
+    }));
+  }
+
+  return item;
 }
 
 export async function getPhotos(itemId) {
