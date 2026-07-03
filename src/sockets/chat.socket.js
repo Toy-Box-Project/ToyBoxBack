@@ -31,6 +31,8 @@ export function initSocket(httpServer) {
   });
 
   io.on('connection', (socket) => {
+
+    socket.join(`user:${socket.userId}`);
     // El cliente se une a la sala de una conversación
     socket.on('join_conversation', (conversationId) => {
       const room = `conversation:${conversationId}`;
@@ -58,4 +60,7 @@ export function initSocket(httpServer) {
 export function emitNewMessage(conversationId, message) {
   if (!io) return;
   io.to(`conversation:${conversationId}`).emit('new_message', message);
+  if (message.fk_users_id_received) {
+    io.to(`user:${message.fk_users_id_received}`).emit('new_message_notification', message);
+  }
 }
