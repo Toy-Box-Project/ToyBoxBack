@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createServer } from 'http';
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { initSocket } from './src/sockets/chat.socket.js';
 
 import authRouter from './src/routes/auth.routes.js';
@@ -23,7 +24,12 @@ const httpServer = createServer(app);
 // Inicializar Socket.io sobre el servidor HTTP
 initSocket(httpServer);
 
-app.use(cors());
+// origin:true refleja el Origin de la petición (equivalente a lo abierto que
+// era antes) pero, a diferencia de origin:'*', sí es compatible con
+// credentials:true, que necesitamos para que el navegador mande la cookie
+// httpOnly de sesión. No rompe clientes sin navegador (Postman, etc.).
+app.use(cors({ origin: true, credentials: true }));
+app.use(cookieParser());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 

@@ -10,6 +10,22 @@ function signToken(user) {
   );
 }
 
+// Opciones de la cookie httpOnly que transporta el JWT.
+// - httpOnly: JS del navegador no puede leerla (mitiga robo de token por XSS).
+// - sameSite 'none' + secure en producción porque front y back viven en
+//   dominios distintos (Railway); en local basta 'lax' (localhost:4200 y
+//   localhost:3000 son mismo "site", solo cambia el puerto).
+// - Esto es ADITIVO: seguimos devolviendo el token en el body también, así
+//   que nada de lo que ya consume la API (Postman, el socket de chat, etc.)
+//   se rompe.
+const isProd = process.env.NODE_ENV === 'production';
+const authCookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? 'none' : 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días, alineado con JWT_EXPIRES_IN por defecto
+};
+
 export async function register(req, res, next) {
   try {
     const {
@@ -37,6 +53,7 @@ export async function register(req, res, next) {
     const user = await UserModel.createUser({ ...required, password: hashedPassword });
     const token = signToken(user);
 
+    res.cookie('token', token, authCookieOptions);
     res.status(201).json({ token, user });
   } catch (err) {
     next(err);
@@ -68,8 +85,17 @@ export async function login(req, res, next) {
     const { password: _pw, ...safeUser } = user;
     const token = signToken(safeUser);
 
+    res.cookie('token', token, authCookieOptions);
     res.json({ token, user: safeUser });
   } catch (err) {
     next(err);
   }
+}
+
+export async function logout(_req, res) {
+  // clearCookie necesita las mismas opciones (salvo maxAge) para que el
+  // navegador identifique que es la misma cookie y la borre.
+  const { maxAge, ...clearOptions } = authCookieOptions;
+  res.clearCookie('token', clearOptions);
+  res.status(200).json({ message: 'Sesión cerrada' });
 }

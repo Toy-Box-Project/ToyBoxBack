@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { body } from 'express-validator';
-import { register, login } from '../controllers/auth.controller.js';
+import { register, login, logout } from '../controllers/auth.controller.js';
 import { validate } from '../middlewares/validate.js';
 
 const router = Router();
@@ -33,5 +33,6 @@ const loginRules = [
 
 router.post('/register', authLimiter, registerRules, validate, register);
 router.post('/login',    authLimiter, loginRules,    validate, login);
+router.post('/logout',   logout);
 
 export default router;
