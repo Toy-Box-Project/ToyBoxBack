@@ -2,7 +2,8 @@ import pool from '../config/db.js';
 
 const BASE_REPORT = `
   SELECT r.*,
-         i.title AS item_title, i.conservation_status AS item_conservation_status,
+         i.title AS item_title, i.description AS item_description,
+         i.conservation_status AS item_conservation_status,
          u_reported.username AS reported_username,
          u_reporter.username AS reporter_username
   FROM reports r
@@ -27,10 +28,10 @@ export async function getPendingReportByItem(itemId) {
 export async function listPendingReports({ page = 1, limit = 20 } = {}) {
   const offset = (Number(page) - 1) * Number(limit);
   const [[{ total }]] = await pool.query(
-    `SELECT COUNT(*) AS total FROM reports WHERE status = 'pending'`
+    `SELECT COUNT(*) AS total FROM reports`
   );
   const [rows] = await pool.query(
-    `${BASE_REPORT} WHERE r.status = 'pending' ORDER BY r.report_date DESC LIMIT ? OFFSET ?`,
+    `${BASE_REPORT} ORDER BY r.report_date DESC LIMIT ? OFFSET ?`,
     [Number(limit), offset]
   );
   return { reports: rows, total, page: Number(page), limit: Number(limit) };
