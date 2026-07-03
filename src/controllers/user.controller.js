@@ -39,16 +39,34 @@ export async function updateProfile(req, res, next) {
         return res.status(409).json({ error: 'Nombre de usuario ya en uso' });
     }
 
-    const { first_name, last_name, phone_number, user_city, user_province, user_zipcode, user_birthday } = req.body;
+    const {
+      first_name, last_name, phone_number, user_city, user_province,
+      user_zipcode, user_birthday, remove_profile_picture
+    } = req.body;
+
+    let profilePicture = existing.profile_picture;
+    if (remove_profile_picture === true || remove_profile_picture === 'true') {
+      if (existing.profile_picture) {
+        try {
+          await cloudinary.uploader.destroy(avatarPublicId(id));
+        } catch (e) {
+
+        }
+      }
+      profilePicture = null;
+    }
+
     const updated = await UserModel.updateProfile(id, {
-      username:      username      ?? existing.username,
-      first_name:    first_name    ?? existing.first_name,
-      last_name:     last_name     ?? existing.last_name,
-      phone_number:  phone_number  ?? existing.phone_number,
-      user_city:     user_city     ?? existing.user_city,
-      user_province: user_province ?? existing.user_province,
-      user_zipcode:  user_zipcode  ?? existing.user_zipcode,
-      user_birthday: user_birthday ?? existing.user_birthday,
+      username:        username        ?? existing.username,
+      first_name:      first_name      ?? existing.first_name,
+      last_name:       last_name       ?? existing.last_name,
+      phone_number:    phone_number    ?? existing.phone_number,
+      user_city:       user_city       ?? existing.user_city,
+      user_province:   user_province   ?? existing.user_province,
+      user_zipcode:    user_zipcode    ?? existing.user_zipcode,
+      user_birthday:   user_birthday   ?? existing.user_birthday,
+
+      profile_picture: profilePicture,
     });
     res.json(updated);
   } catch (err) { next(err); }
@@ -62,9 +80,6 @@ export async function uploadAvatar(req, res, next) {
     if (!req.file)
       return res.status(400).json({ error: 'No se ha enviado ninguna imagen' });
 
-    // Sube el avatar a Cloudinary en toybox_images/users/profile. public_id fijo
-    // por usuario + overwrite:true, así cada nueva foto reemplaza la anterior
-    // en vez de acumular archivos sueltos en esa carpeta.
     const result = await uploadBufferToCloudinary(req.file.buffer, {
       folder: PROFILE_FOLDER,
       public_id: `user_${id}`,
