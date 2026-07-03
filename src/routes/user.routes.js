@@ -16,6 +16,7 @@ const updateProfileRules = [
   body('user_province').optional().trim().isLength({ max: 100 }).escape(),
   body('user_zipcode').optional().trim().isLength({ max: 10 }).escape(),
   body('user_birthday').optional().isDate().withMessage('user_birthday debe ser una fecha válida (YYYY-MM-DD)'),
+  body('remove_profile_picture').optional().isBoolean().withMessage('remove_profile_picture debe ser booleano'),
 ];
 
 router.get('/me', authenticate, getMyProfile);

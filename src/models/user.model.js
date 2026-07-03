@@ -42,12 +42,19 @@ export async function createUser(data) {
 }
 
 export async function updateProfile(id, data) {
-  const { username, first_name, last_name, phone_number, user_city, user_province, user_zipcode, user_birthday } = data;
+  const {
+    username, first_name, last_name, phone_number, user_city, user_province,
+    user_zipcode, user_birthday, profile_picture
+  } = data;
   await pool.query(
     `UPDATE users SET username=?, first_name=?, last_name=?, phone_number=?,
-       user_city=?, user_province=?, user_zipcode=?, user_birthday=?
+       user_city=?, user_province=?, user_zipcode=?, user_birthday=?, profile_picture=?
      WHERE id_users=?`,
-    [username, first_name, last_name, phone_number ?? null, user_city, user_province, user_zipcode ?? null, user_birthday ?? null, id]
+    [
+      username, first_name, last_name, phone_number ?? null, user_city,
+      user_province, user_zipcode ?? null, user_birthday ?? null,
+      profile_picture ?? null, id
+    ]
   );
   return findById(id);
 }
