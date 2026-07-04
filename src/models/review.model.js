@@ -144,3 +144,40 @@ export async function getAverageRatingByProduct(productId) {
     totalReviews: result.totalReviews
   };
 }
+
+export async function getByReviewerAndProduct(reviewerId, itemId) {
+  const [reviews] = await pool.query(
+    `SELECT r.*,
+            u_reviewed.username AS reviewed_username,
+            u_reviewed.profile_picture AS reviewed_profile_picture,
+            i.title AS item_title,
+            i.price AS item_price
+     FROM reviews r
+     LEFT JOIN users u_reviewed ON r.fk_reviewed_id = u_reviewed.id_users
+     LEFT JOIN items i ON r.fk_items_id = i.id_items
+     WHERE r.fk_reviewer_id = ? AND r.fk_items_id = ?
+     LIMIT 1`,
+    [reviewerId, itemId]
+  );
+
+  if (reviews.length === 0) return null;
+
+  const r = reviews[0];
+  return {
+    id_reviews: r.id_reviews,
+    rating: r.rating,
+    comment: r.comment,
+    review_date: r.review_date,
+    fk_items_id: r.fk_items_id,
+    fk_reviewer_id: r.fk_reviewer_id,
+    fk_reviewed_id: r.fk_reviewed_id,
+    item: {
+      title: r.item_title,
+      price: r.item_price
+    },
+    reviewed: {
+      username: r.reviewed_username,
+      profile_picture: r.reviewed_profile_picture
+    }
+  };
+}

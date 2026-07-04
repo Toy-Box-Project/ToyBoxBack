@@ -120,10 +120,23 @@ export async function publishItem(id) {
   return getById(id);
 }
 
-export async function markAsSold(id) {
-  await pool.query(
-    `UPDATE items SET conservation_status = 'sold', item_status = 'sold', item_update = NOW() WHERE id_items = ?`,
-    [id]
-  );
-  return getById(id);
+export async function markAsSold(id, fk_buyer_id) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.query(
+      `UPDATE items SET conservation_status = 'sold', item_status = 'sold', item_update = NOW() WHERE id_items = ?`,
+      [id]
+    );
+    
+    if (fk_buyer_id) {
+      await connection.query(
+        `INSERT INTO item_history (fk_items_id, fk_buyer_id, trade_status) VALUES (?, ?, 'done')`,
+        [id, fk_buyer_id]
+      );
+    }
+    
+    return await getById(id);
+  } finally {
+    connection.release();
+  }
 }

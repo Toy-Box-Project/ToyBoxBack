@@ -1,8 +1,8 @@
 import { uploadBufferToCloudinary } from '../config/cloudinary.js';
 import * as ItemModel from '../models/item.model.js';
 import * as NotificationModel from '../models/notification.model.js';
+import * as ConversationModel from '../models/conversation.model.js';
 
-// Carpeta fija en Cloudinary para las fotos de productos (create/edit product)
 const PRODUCT_FOLDER = 'toybox_images/users/products';
 
 export async function listProducts(req, res, next) {
@@ -126,9 +126,6 @@ export async function uploadImages(req, res, next) {
     if (existing.length + req.files.length > 5)
       return res.status(400).json({ error: `Solo se permiten hasta 5 imágenes (ya tiene ${existing.length})` });
 
-    // Sube cada imagen a Cloudinary en toybox_images/users/products. Puede haber
-    // varias fotos por producto (hasta 5), así que cada una lleva un public_id
-    // único (item + timestamp + índice) en vez de un id fijo con overwrite.
     const uploads = req.files.map((file, index) =>
       uploadBufferToCloudinary(file.buffer, {
         folder: PRODUCT_FOLDER,
@@ -172,13 +169,36 @@ export async function publishProduct(req, res, next) {
 export async function soldProduct(req, res, next) {
   try {
     const id = Number(req.params.id);
+    const { fk_buyer_id } = req.body;
+
     const item = await ItemModel.getById(id);
     if (!item) return res.status(404).json({ error: 'Artículo no encontrado' });
     if (item.fk_seller_id !== req.user.id_users)
       return res.status(403).json({ error: 'Solo el propietario puede marcar el artículo como vendido' });
-    if (item.conservation_status !== 'reserved')
-      return res.status(409).json({ error: 'Solo se pueden marcar como vendidos artículos en estado reservado' });
 
-    res.json(await ItemModel.markAsSold(id));
+    if (!fk_buyer_id) {
+      return res.status(400).json({ error: 'El fk_buyer_id es requerido' });
+    }
+
+    if (!Number.isInteger(fk_buyer_id) || fk_buyer_id <= 0) {
+      return res.status(400).json({ error: 'El fk_buyer_id debe ser un número válido positivo' });
+    }
+
+    const conversation = await ConversationModel.findOrCreate({
+      fk_items_id: item.id_items,
+      fk_seller_id: item.fk_seller_id,
+      fk_buyer_id: fk_buyer_id
+    });
+
+    if (!conversation || !conversation.conversation) {
+      return res.status(400).json({
+        error: 'No existe una conversación válida entre el vendedor y este comprador para este producto'
+      });
+    }
+
+    if (!['published', 'reserved'].includes(item.conservation_status))
+      return res.status(409).json({ error: 'Solo se pueden marcar como vendidos artículos publicados o reservados' });
+
+    res.json(await ItemModel.markAsSold(id, fk_buyer_id));
   } catch (err) { next(err); }
 }
