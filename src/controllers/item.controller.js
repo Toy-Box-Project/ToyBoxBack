@@ -1,5 +1,6 @@
 import { uploadBufferToCloudinary } from '../config/cloudinary.js';
 import * as ItemModel from '../models/item.model.js';
+import * as NotificationModel from '../models/notification.model.js';
 
 // Carpeta fija en Cloudinary para las fotos de productos (create/edit product)
 const PRODUCT_FOLDER = 'toybox_images/users/products';
@@ -47,6 +48,12 @@ export async function createProduct(req, res, next) {
       fk_categories_id: Number(fk_categories_id),
       location, fk_seller_id: req.user.id_users,
     });
+
+     await NotificationModel.create({
+      fk_users_id: req.user.id_users,
+      message: `Has creado un nuevo producto: "${item.title}".`
+    });
+
     res.status(201).json(item);
   } catch (err) { next(err); }
 }
@@ -71,6 +78,11 @@ export async function updateProduct(req, res, next) {
       fk_categories_id: fk_categories_id ? Number(fk_categories_id) : item.fk_categories_id,
       location:         location         ?? item.location,
     });
+
+    await NotificationModel.create({
+      fk_users_id: req.user.id_users,
+      message: `Has editado el producto "${updated.title}".`
+    });
     res.json(updated);
   } catch (err) { next(err); }
 }
@@ -87,7 +99,15 @@ export async function deleteProduct(req, res, next) {
     if (['sold', 'under_review'].includes(item.conservation_status))
       return res.status(409).json({ error: 'No se puede eliminar un artículo vendido o en revisión' });
 
+    const deletedTitle = item.title;
+    
     await ItemModel.softDeleteItem(id);
+
+    await NotificationModel.create({
+      fk_users_id: req.user.id_users,
+      message: `Has eliminado el producto "${deletedTitle}".`
+    }); 
+
     res.status(204).end();
   } catch (err) { next(err); }
 }
@@ -137,6 +157,13 @@ export async function publishProduct(req, res, next) {
     const photos = await ItemModel.getPhotos(id);
     if (photos.length === 0)
       return res.status(400).json({ error: 'El artículo debe tener al menos una imagen para publicarse' });
+
+    const publishedItem = await ItemModel.publishItem(id);
+
+    await NotificationModel.create({
+      fk_users_id: req.user.id_users,
+      message: `Tu producto "${publishedItem.title}" ha sido publicado correctamente.`
+    });
 
     res.json(await ItemModel.publishItem(id));
   } catch (err) { next(err); }
