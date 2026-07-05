@@ -5,7 +5,7 @@ export async function getAll() {
     `SELECT c.*, COUNT(i.id_items) AS total_items
      FROM categories c
      LEFT JOIN items i ON i.fk_categories_id = c.id_categories
-     GROUP BY c.id_categories, c.name, c.description
+     GROUP BY c.id_categories, c.name, c.description, c.icon
      ORDER BY c.name`
   );
   return rows;
@@ -17,19 +17,19 @@ export async function getById(id) {
 }
 
 export async function create(data) {
-  const { name, description } = data;
+  const { name, description, icon } = data;
   const [result] = await pool.query(
-    'INSERT INTO categories (name, description) VALUES (?, ?)',
-    [name, description ?? null]
+    'INSERT INTO categories (name, description, icon) VALUES (?, ?, ?)',
+    [name, description ?? null, icon ?? null]
   );
   return getById(result.insertId);
 }
 
 export async function update(id, data) {
-  const { name, description } = data;
+  const { name, description, icon } = data;
   await pool.query(
-    'UPDATE categories SET name = ?, description = ? WHERE id_categories = ?',
-    [name, description ?? null, id]
+    'UPDATE categories SET name = ?, description = ?, icon = ? WHERE id_categories = ?',
+    [name, description ?? null, icon ?? null, id]
   );
   return getById(id);
 }

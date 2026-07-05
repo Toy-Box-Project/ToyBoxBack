@@ -11,10 +11,10 @@ export async function getAll(req, res, next) {
 
 export async function create(req, res, next) {
   try {
-    const { name, description } = req.body;
+    const { name, description, icon } = req.body;
     if (!name) return res.status(400).json({ error: 'El campo name es requerido' });
 
-    const category = await CategoryModel.create({ name, description });
+    const category = await CategoryModel.create({ name, description, icon });
     res.status(201).json(category);
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
@@ -27,13 +27,13 @@ export async function create(req, res, next) {
 export async function update(req, res, next) {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
+    const { name, description, icon } = req.body;
     if (!name) return res.status(400).json({ error: 'El campo name es requerido' });
 
     const existing = await CategoryModel.getById(id);
     if (!existing) return res.status(404).json({ error: 'Categoría no encontrada' });
 
-    const category = await CategoryModel.update(id, { name, description });
+    const category = await CategoryModel.update(id, { name, description, icon });
     res.json(category);
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
