@@ -5,7 +5,7 @@ export async function getAll() {
     `SELECT c.*, COUNT(i.id_items) AS total_items
      FROM categories c
      LEFT JOIN items i ON i.fk_categories_id = c.id_categories
-     GROUP BY c.id_categories, c.name, c.description, c.icon
+     GROUP BY c.id_categories, c.name, c.description
      ORDER BY c.name`
   );
   return rows;
