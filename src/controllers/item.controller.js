@@ -179,6 +179,13 @@ export async function soldProduct(req, res, next) {
     if (!['published', 'reserved'].includes(item.conservation_status))
       return res.status(409).json({ error: 'Solo se pueden marcar como vendidos artículos publicados o reservados' });
 
+    const soldItem = await ItemModel.markAsSold(id);
+
+    await NotificationModel.create({
+      fk_users_id: req.user.id_users,
+      message: `Tu producto "${soldItem.title}" ha sido vendido correctamente.`
+    });
+
     res.json(await ItemModel.markAsSold(id, fk_buyer_id));
   } catch (err) { next(err); }
 }
