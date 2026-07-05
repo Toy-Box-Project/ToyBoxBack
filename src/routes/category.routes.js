@@ -10,6 +10,7 @@ const router = Router();
 const categoryRules = [
   body('name').trim().notEmpty().withMessage('name es requerido').isLength({ max: 100 }).escape(),
   body('description').optional().trim().escape(),
+  body('icon').optional().isString().isLength({ max: 500 }).withMessage('icon no puede superar 500 caracteres'),
 ];
 
 router.get('/', getAll);

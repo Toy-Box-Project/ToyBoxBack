@@ -22,6 +22,9 @@ export async function getAdminStats(req, res, next) {
     const [[{ pendingReservations }]] = await pool.query(
       `SELECT COUNT(*) AS pendingReservations FROM item_history WHERE trade_status = 'pending'`
     );
+    const [[{ totalReservations }]] = await pool.query(
+      `SELECT COUNT(*) AS totalReservations FROM item_history`
+    );
     const [[{ pendingReports }]] = await pool.query(
       `SELECT COUNT(*) AS pendingReports FROM reports WHERE status = 'pending'`
     );
@@ -32,6 +35,7 @@ export async function getAdminStats(req, res, next) {
       users_by_status: usersByStatus,
       top_categories: topCategories,
       pending_reservations: pendingReservations,
+      total_reservations: totalReservations,
       pending_reports: pendingReports,
     });
   } catch (err) { next(err); }

@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS `categories` (
   `id_categories` INT UNSIGNED  NOT NULL AUTO_INCREMENT,
   `name`          VARCHAR(100)  NOT NULL,
   `description`   TEXT          DEFAULT NULL,
+  `icon`          VARCHAR(500)  DEFAULT NULL,
   PRIMARY KEY (`id_categories`),
   UNIQUE KEY `uq_categories_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
