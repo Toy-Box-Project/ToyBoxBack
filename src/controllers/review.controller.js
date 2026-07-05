@@ -1,6 +1,7 @@
 import * as ReviewModel from '../models/review.model.js';
 import * as ItemModel from '../models/item.model.js';
 import * as UserModel from '../models/user.model.js';
+import * as NotificationModel from '../models/notification.model.js';
 
 export async function createReview(req, res, next) {
   try {
@@ -44,6 +45,11 @@ export async function createReview(req, res, next) {
       fk_reviewed_id: Number(fk_reviewed_id),
     });
     
+    await NotificationModel.create({
+      fk_users_id: Number(fk_reviewed_id),
+      message: `Has recibido una nueva reseña de ${rating} estrella${Number(rating) > 1 ? 's' : ''} en el producto "${item.title}".`
+    });
+
     res.status(201).json(review);
   } catch (err) { next(err); }
 }

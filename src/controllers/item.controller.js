@@ -186,6 +186,11 @@ export async function soldProduct(req, res, next) {
       message: `Tu producto "${soldItem.title}" ha sido vendido correctamente.`
     });
 
+    await NotificationModel.create({
+      fk_users_id: fk_buyer_id,
+      message: `¡Has comprado "${soldItem.title}", deja tu reseña!.`
+    });
+
     res.json(await ItemModel.markAsSold(id, fk_buyer_id));
   } catch (err) { next(err); }
 }
