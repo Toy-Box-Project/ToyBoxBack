@@ -39,9 +39,9 @@ export async function getPhotos(itemId) {
 
 // ─── Listado público con filtros y paginación ─────────────────────────────────
 
-export async function getPublished({ search, categoryId, location, minPrice, maxPrice, sellerId, page = 1, limit = 12 } = {}) {
-  const conditions = [`i.conservation_status = 'published'`];
-  const params = [];
+export async function getPublished({ search, categoryId, location, minPrice, maxPrice, sellerId, page = 1, limit = 12, conservation_status = 'published' } = {}) { // ← CAMBIO: agregar parámetro conservation_status con defecto 'published'
+  const conditions = [`i.conservation_status = ?`]; 
+  const params = [conservation_status]; 
 
   if (sellerId)              { conditions.push('i.fk_seller_id = ?');     params.push(sellerId); }
   if (search)                { conditions.push('(i.title LIKE ? OR i.description LIKE ?)'); const l = `%${search}%`; params.push(l, l); }
@@ -76,11 +76,11 @@ export async function getPublished({ search, categoryId, location, minPrice, max
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
-export async function createItem({ title, description, price, fk_categories_id, location, fk_seller_id }) {
+export async function createItem({ title, description, price, fk_categories_id, location, fk_seller_id, conservation_status = 'draft' }) { // ← CAMBIO: agregar parámetro conservation_status con defecto 'draft'
   const [result] = await pool.query(
     `INSERT INTO items (title, description, price, fk_categories_id, location, fk_seller_id, conservation_status, item_status)
-     VALUES (?, ?, ?, ?, ?, ?, 'draft', 'available')`,
-    [title, description ?? null, price, fk_categories_id, location ?? null, fk_seller_id]
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'available')`, 
+    [title, description ?? null, price, fk_categories_id, location ?? null, fk_seller_id, conservation_status] // ← CAMBIO: agregar conservation_status como último parámetro
   );
   return getById(result.insertId);
 }
@@ -96,7 +96,7 @@ export async function updateItem(id, { title, description, price, fk_categories_
 
 export async function softDeleteItem(id) {
   await pool.query(
-    `UPDATE items SET item_status = 'deleted', item_update = NOW() WHERE id_items = ?`,
+    `UPDATE items SET conservation_status = 'removed', item_status = 'deleted', item_update = NOW() WHERE id_items = ?`,
     [id]
   );
 }

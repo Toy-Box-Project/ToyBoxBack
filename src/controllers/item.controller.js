@@ -7,7 +7,7 @@ const PRODUCT_FOLDER = 'toybox_images/users/products';
 
 export async function listProducts(req, res, next) {
   try {
-    const { search, categoryId, location, minPrice, maxPrice, sellerId, page, limit } = req.query;
+    const { search, categoryId, location, minPrice, maxPrice, sellerId, page, limit, conservation_status } = req.query; 
     const result = await ItemModel.getPublished({
       search,
       categoryId:  categoryId  ? Number(categoryId)  : undefined,
@@ -17,6 +17,7 @@ export async function listProducts(req, res, next) {
       sellerId:    sellerId    ? Number(sellerId)    : undefined,
       page:        page        ? Number(page)        : 1,
       limit:       limit       ? Number(limit)       : 12,
+      conservation_status: conservation_status || 'published' 
     });
     res.json(result);
   } catch (err) { next(err); }
@@ -33,7 +34,7 @@ export async function getProduct(req, res, next) {
 
 export async function createProduct(req, res, next) {
   try {
-    const { title, description, price, fk_categories_id, location } = req.body;
+    const { title, description, price, fk_categories_id, location, conservation_status } = req.body;
     if (!title || !price || !fk_categories_id)
       return res.status(400).json({ error: 'Campos requeridos: title, price, fk_categories_id' });
     if (title.length > 150)
@@ -44,9 +45,13 @@ export async function createProduct(req, res, next) {
       return res.status(400).json({ error: 'El precio debe ser mayor que 0' });
 
     const item = await ItemModel.createItem({
-      title, description, price: Number(price),
+      title, 
+      description, 
+      price: Number(price),
       fk_categories_id: Number(fk_categories_id),
-      location, fk_seller_id: req.user.id_users,
+      location, 
+      fk_seller_id: req.user.id_users,
+      conservation_status: conservation_status || 'draft' 
     });
 
      await NotificationModel.create({
@@ -84,31 +89,6 @@ export async function updateProduct(req, res, next) {
       message: `Has editado el producto "${updated.title}".`
     });
     res.json(updated);
-  } catch (err) { next(err); }
-}
-
-export async function deleteProduct(req, res, next) {
-  try {
-    const id = Number(req.params.id);
-    const item = await ItemModel.getById(id);
-    if (!item) return res.status(404).json({ error: 'Artículo no encontrado' });
-
-    const isOwner = item.fk_seller_id === req.user.id_users;
-    if (!isOwner && req.user.role !== 'administrator')
-      return res.status(403).json({ error: 'Sin permiso para eliminar este artículo' });
-    if (['sold', 'under_review'].includes(item.conservation_status))
-      return res.status(409).json({ error: 'No se puede eliminar un artículo vendido o en revisión' });
-
-    const deletedTitle = item.title;
-    
-    await ItemModel.softDeleteItem(id);
-
-    await NotificationModel.create({
-      fk_users_id: req.user.id_users,
-      message: `Has eliminado el producto "${deletedTitle}".`
-    }); 
-
-    res.status(204).end();
   } catch (err) { next(err); }
 }
 
@@ -200,5 +180,34 @@ export async function soldProduct(req, res, next) {
       return res.status(409).json({ error: 'Solo se pueden marcar como vendidos artículos publicados o reservados' });
 
     res.json(await ItemModel.markAsSold(id, fk_buyer_id));
+  } catch (err) { next(err); }
+}
+
+export async function deleteProduct(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const item = await ItemModel.getById(id);
+    if (!item) return res.status(404).json({ error: 'Artículo no encontrado' });
+
+    const isOwner = item.fk_seller_id === req.user.id_users;
+    if (!isOwner && req.user.role !== 'administrator')
+      return res.status(403).json({ error: 'Sin permiso para eliminar este artículo' });
+    
+    if (item.conservation_status === 'removed')
+      return res.status(409).json({ error: 'El artículo ya ha sido eliminado' });
+    
+    if (['sold', 'under_review'].includes(item.conservation_status))
+      return res.status(409).json({ error: 'No se puede eliminar un artículo vendido o en revisión' });
+
+    const deletedTitle = item.title;
+    
+    await ItemModel.softDeleteItem(id);
+
+    await NotificationModel.create({
+      fk_users_id: req.user.id_users,
+      message: `Has eliminado el producto "${deletedTitle}".`
+    }); 
+
+    res.status(204).end();
   } catch (err) { next(err); }
 }
