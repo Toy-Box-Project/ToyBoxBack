@@ -17,20 +17,25 @@ export async function getById(id) {
 }
 
 export async function create(data) {
-  const { name, description, icon } = data;
+  const { name, description } = data;
   const [result] = await pool.query(
-    'INSERT INTO categories (name, description, icon) VALUES (?, ?, ?)',
-    [name, description ?? null, icon ?? null]
+    'INSERT INTO categories (name, description) VALUES (?, ?)',
+    [name, description ?? null]
   );
   return getById(result.insertId);
 }
 
 export async function update(id, data) {
-  const { name, description, icon } = data;
+  const { name, description } = data;
   await pool.query(
-    'UPDATE categories SET name = ?, description = ?, icon = ? WHERE id_categories = ?',
-    [name, description ?? null, icon ?? null, id]
+    'UPDATE categories SET name = ?, description = ? WHERE id_categories = ?',
+    [name, description ?? null, id]
   );
+  return getById(id);
+}
+
+export async function updateIcon(id, icon) {
+  await pool.query('UPDATE categories SET icon = ? WHERE id_categories = ?', [icon, id]);
   return getById(id);
 }
 
