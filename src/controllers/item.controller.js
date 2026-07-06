@@ -149,7 +149,7 @@ export async function publishProduct(req, res, next) {
 export async function soldProduct(req, res, next) {
   try {
     const id = Number(req.params.id);
-    const { fk_buyer_id } = req.body;
+    const { fk_buyer_id, price } = req.body;
 
     const item = await ItemModel.getById(id);
     if (!item) return res.status(404).json({ error: 'Artículo no encontrado' });
@@ -179,7 +179,7 @@ export async function soldProduct(req, res, next) {
     if (!['published', 'reserved'].includes(item.conservation_status))
       return res.status(409).json({ error: 'Solo se pueden marcar como vendidos artículos publicados o reservados' });
 
-    const soldItem = await ItemModel.markAsSold(id);
+    const soldItem = await ItemModel.markAsSold(id, fk_buyer_id, price);
 
     await NotificationModel.create({
       fk_users_id: req.user.id_users,
@@ -191,7 +191,7 @@ export async function soldProduct(req, res, next) {
       message: `¡Has comprado "${soldItem.title}", deja tu reseña!.`
     });
 
-    res.json(await ItemModel.markAsSold(id, fk_buyer_id));
+    res.json(await ItemModel.markAsSold(id, fk_buyer_id, price));
   } catch (err) { next(err); }
 }
 
@@ -221,5 +221,28 @@ export async function deleteProduct(req, res, next) {
     }); 
 
     res.status(204).end();
+  } catch (err) { next(err); }
+}
+export async function toggleReserveProduct(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const item = await ItemModel.getById(id);
+    if (!item) return res.status(404).json({ error: 'Artículo no encontrado' });
+    if (item.fk_seller_id !== req.user.id_users)
+      return res.status(403).json({ error: 'Solo el propietario puede reservar' });
+
+    if (item.item_status === 'sold')
+      return res.status(409).json({ error: 'No se puede reservar un artículo vendido' });
+
+    let reservedItem;
+    if (item.conservation_status === 'reserved') {
+      reservedItem = await ItemModel.publishItem(id);
+    } else if (item.conservation_status === 'published') {
+      reservedItem = await ItemModel.markAsReserved(id);
+    } else {
+      return res.status(409).json({ error: 'Solo se pueden reservar artículos publicados' });
+    }
+
+    res.json(reservedItem);
   } catch (err) { next(err); }
 }
