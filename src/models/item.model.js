@@ -120,23 +120,46 @@ export async function publishItem(id) {
   return getById(id);
 }
 
-export async function markAsSold(id, fk_buyer_id) {
+export async function markAsSold(id, fk_buyer_id, price) {
   const connection = await pool.getConnection();
   try {
+    const updateFields = ['conservation_status = \'sold\'', 'item_status = \'sold\'', 'item_update = NOW()'];
+    const params = [id];
+
+    if (price !== undefined && price !== null) {
+      updateFields.push('price = ?');
+      params.unshift(Number(price));
+    }
+
     await connection.query(
-      `UPDATE items SET conservation_status = 'sold', item_status = 'sold', item_update = NOW() WHERE id_items = ?`,
-      [id]
+      `UPDATE items SET ${updateFields.join(', ')} WHERE id_items = ?`,
+      [...params, id]
     );
-    
+
     if (fk_buyer_id) {
-      await connection.query(
-        `INSERT INTO item_history (fk_items_id, fk_buyer_id, trade_status) VALUES (?, ?, 'done')`,
+      const [existing] = await connection.query(
+        `SELECT id_item_history FROM item_history WHERE fk_items_id = ? AND fk_buyer_id = ?`,
         [id, fk_buyer_id]
       );
+
+      if (existing.length === 0) {
+        await connection.query(
+          `INSERT INTO item_history (fk_items_id, fk_buyer_id, trade_status) VALUES (?, ?, 'done')`,
+          [id, fk_buyer_id]
+        );
+      }
     }
-    
+
     return await getById(id);
   } finally {
     connection.release();
   }
+}
+
+export async function markAsReserved(id) {
+  await pool.query(
+    `UPDATE items SET conservation_status = 'reserved', item_update = NOW() WHERE id_items = ?`,
+    [id]
+  );
+  return getById(id);
 }

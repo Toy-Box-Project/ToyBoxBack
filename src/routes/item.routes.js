@@ -5,7 +5,7 @@ import { upload } from '../middlewares/upload.js';
 import { validate } from '../middlewares/validate.js';
 import {
   listProducts, getProduct, createProduct, updateProduct,
-  deleteProduct, uploadImages, publishProduct, soldProduct,
+  deleteProduct, uploadImages, publishProduct, soldProduct, toggleReserveProduct
 } from '../controllers/item.controller.js';
 import { reportItem } from '../controllers/report.controller.js';
 
@@ -30,6 +30,7 @@ router.put('/:id',  authenticate, itemRules, validate, updateProduct);
 router.delete('/:id', authenticate, deleteProduct);
 router.post('/:id/images',   authenticate, upload.array('images', 5), uploadImages);
 router.patch('/:id/publish', authenticate, publishProduct);
+router.patch('/:id/reserved', authenticate, toggleReserveProduct);
 router.patch('/:id/sold',    authenticate, soldProduct);
 router.post('/:id/report',   authenticate, reportRules, validate, reportItem);
 

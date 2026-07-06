@@ -44,11 +44,13 @@ export async function getUserConversations(userId) {
             buyer.id_users AS buyer_id, buyer.username AS buyer_username, buyer.profile_picture AS buyer_avatar,
             (SELECT m.content FROM messages m WHERE m.fk_conversations_id=c.id_conversations ORDER BY m.sent_at DESC LIMIT 1) AS last_message,
             (SELECT COUNT(*) FROM messages m WHERE m.fk_conversations_id=c.id_conversations AND m.fk_users_id_received=? AND m.read=false) AS unread_count,
-            c.created_at
+            c.created_at,
+            CASE WHEN ih.id_item_history IS NOT NULL THEN 1 ELSE 0 END AS is_sold_in_this_conversation
      FROM conversations c
      JOIN items i ON i.id_items=c.fk_items_id
      JOIN users seller ON seller.id_users=c.fk_seller_id
      JOIN users buyer ON buyer.id_users=c.fk_buyer_id
+     LEFT JOIN item_history ih ON ih.fk_items_id=c.fk_items_id AND ih.fk_buyer_id=c.fk_buyer_id
      WHERE c.fk_seller_id=? OR c.fk_buyer_id=?
      ORDER BY c.id_conversations DESC`,
     [userId, userId, userId]
@@ -65,6 +67,7 @@ export async function getUserConversations(userId) {
 
     conservation_status: row.conservation_status,
     item_status: row.item_status,
+    is_sold_in_this_conversation: row.is_sold_in_this_conversation,  
 
     item_id: row.item_id,
     item_title: row.item_title,
