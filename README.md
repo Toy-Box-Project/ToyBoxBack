@@ -1,137 +1,135 @@
-# ToyBoxBack — API REST
+# ToyBox Backend – API REST con Node.js y Express
 
-Backend del proyecto ToyBox. Node.js 20+ · Express 5 · MySQL 8 (Aiven) · JWT · bcrypt.
+A complete REST API for the ToyBox platform, a second-hand toy marketplace. Includes user management, product catalog, real-time chat, ratings, purchases, and moderation system.
 
----
+## Features
 
-## Setup local
+* Express 5.x server setup with ES Modules
+* JWT authentication with bcryptjs
+* MySQL database with 13 normalized tables
+* Real-time chat with Socket.io
+* Cloudinary integration for image storage
+* CORS enabled
+* Environment configuration with `.env` support
+* Express-validator for input validation
+* Role-based access control (RBAC)
+* Global error handling middleware
+
+## Getting Started
+
+### Prerequisites
+
+Ensure you have the following installed:
+- Node.js 22+
+- npm 10+
+- MySQL 8.0+
+
+You can download Node.js from the [Node.js official website](https://nodejs.org/).
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone <repository-url> toybox-backend
+cd toybox-backend
+```
+
+2. Navigate to the project directory and install dependencies:
 
 ```bash
 npm install
-cp .env.example .env   # completar con tus credenciales
+```
+
+3. Import the database:
+
+```bash
+mysql -u root -p toybox < BBDD/toybox_schema_updated.sql
+mysql -u root -p toybox < BBDD/seed_updated.sql
+```
+
+## Environment Configuration
+
+Create a `.env` file in the root of the project. Reference `.env.example` for required variables:
+
+```
+PORT=3000
+NODE_ENV=development
+
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_PORT=3306
+DB_NAME=toybox
+
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+JWT_SECRET=your_long_secret_key_with_special_characters
+JWT_EXPIRATION=7d
+
+CORS_ORIGIN=http://localhost:4200
+```
+
+## Running the Application
+
+### Start the server
+
+```bash
+npm start
+```
+
+The server will start and listen on the port defined in your `.env` file, or default to port 3000.
+
+### Development mode
+
+To start the server in development mode with automatic restarts on file changes:
+
+```bash
 npm run dev
 ```
 
-El servidor arranca en `http://localhost:3000`.
+## Available Scripts
 
----
+* `start` - Runs `node index.js` to start the server
+* `dev` - Runs `nodemon index.js` for development with auto-restart
+* `lint` - Check code for issues (if linting is configured)
+* `format` - Format and fix code (if formatter is configured)
 
-## Variables de entorno (`.env`)
+## Project Structure
 
-| Variable | Descripción |
-|---|---|
-| `PORT` | Puerto del servidor (default 3000) |
-| `DB_HOST` | Host MySQL |
-| `DB_PORT` | Puerto MySQL (default 3306) |
-| `DB_USER` | Usuario MySQL |
-| `DB_PASSWORD` | Contraseña MySQL |
-| `DB_NAME` | Nombre de la base de datos |
-| `JWT_SECRET` | Clave secreta para firmar JWT |
-| `JWT_EXPIRES_IN` | Expiración del token (ej. `7d`) |
-
----
-
-## Base de datos
-
-```bash
-mysql -u <user> -p <dbname> < BBDD/toybox_schema.sql
-mysql -u <user> -p <dbname> < BBDD/seed.sql
+```
+backend/
+├── src/
+│   ├── config/          # Database and Cloudinary configuration
+│   ├── controllers/     # Business logic (14 files)
+│   ├── models/          # SQL queries (10 files)
+│   ├── routes/          # API endpoints (11 files)
+│   ├── middlewares/     # Auth, validation, error handling
+│   └── sockets/         # Socket.io for real-time chat
+├── BBDD/                # SQL scripts
+│   ├── toybox_schema_updated.sql
+│   ├── seed_updated.sql
+│   └── queries_items.sql
+├── .env.example         # Environment template
+├── .env                 # Environment variables (git ignored)
+├── package.json
+└── index.js
 ```
 
----
 
-## Endpoints
 
-### Auth
-| Método | Ruta | Auth |
-|---|---|---|
-| POST | `/auth/register` | No |
-| POST | `/auth/login` | No |
+## Authors
 
-### Categorías
-| Método | Ruta | Auth | Rol |
-|---|---|---|---|
-| GET | `/categories` | No | — |
-| POST | `/categories` | Sí | admin |
-| PUT | `/categories/:id` | Sí | admin |
-| DELETE | `/categories/:id` | Sí | admin |
+This project was developed by:
 
-### Productos
-| Método | Ruta | Auth | Rol |
-|---|---|---|---|
-| GET | `/products` | No | — |
-| GET | `/products/:id` | No | — |
-| POST | `/products` | Sí | user |
-| PUT | `/products/:id` | Sí | owner/admin |
-| DELETE | `/products/:id` | Sí | owner/admin |
-| POST | `/products/:id/images` | Sí | owner |
-| PATCH | `/products/:id/publish` | Sí | owner |
-| PATCH | `/products/:id/sold` | Sí | owner |
-| POST | `/products/:id/report` | Sí | user |
+- Adrian Ortiz
+- Heimer Martinez
+- Jaime Colás
+- Jesus Maria Trillo-Figueroa
+- Julian Diaz
+- Luna Lopez de la Fuente
 
-### Usuarios
-| Método | Ruta | Auth | Rol |
-|---|---|---|---|
-| GET | `/users/:id` | No | — |
-| PUT | `/users/:id` | Sí | owner |
-| PATCH | `/users/:id/avatar` | Sí | owner |
+Master  Full Stack  - UNIR (2026)
 
-### Admin
-| Método | Ruta | Auth | Rol |
-|---|---|---|---|
-| GET | `/admin/users` | Sí | admin |
-| PATCH | `/admin/users/:id/role` | Sí | admin |
-| PATCH | `/admin/users/:id/active` | Sí | admin |
-| GET | `/admin/stats` | Sí | admin |
-| GET | `/admin/reports` | Sí | mod/admin |
-| GET | `/admin/reports/:id` | Sí | mod/admin |
-| PATCH | `/admin/reports/:productId/approve` | Sí | mod/admin |
-| PATCH | `/admin/reports/:productId/withdraw` | Sí | mod/admin |
-
-### Chats
-| Método | Ruta | Auth |
-|---|---|---|
-| POST | `/chats` | Sí |
-| GET | `/chats` | Sí |
-| GET | `/chats/:id` | Sí |
-| GET | `/chats/:id/messages` | Sí |
-| POST | `/chats/:id/messages` | Sí |
-| PATCH | `/chats/:id/read` | Sí |
-
-### Reservas
-| Método | Ruta | Auth |
-|---|---|---|
-| POST | `/reservations` | Sí |
-| GET | `/reservations/my` | Sí |
-| PATCH | `/reservations/:id/cancel` | Sí |
-| PATCH | `/reservations/:id/complete` | Sí |
-
-### Órdenes
-| Método | Ruta | Auth |
-|---|---|---|
-| GET | `/orders/purchases` | Sí |
-| GET | `/orders/sales` | Sí |
-| GET | `/orders/:id` | Sí |
-
-### Reseñas
-| Método | Ruta | Auth |
-|---|---|---|
-| GET | `/reviews/product/:productId` | No |
-| POST | `/reviews` | Sí |
-
-### Favoritos
-| Método | Ruta | Auth |
-|---|---|---|
-| GET | `/favorites` | Sí |
-| POST | `/favorites/:productId` | Sí |
-| DELETE | `/favorites/:productId` | Sí |
-
----
-
-## Stack
-
-- **Runtime:** Node.js ≥22 · **Framework:** Express 5
-- **BD:** MySQL 8 vía `mysql2/promise`
-- **Auth:** JWT + `bcryptjs`
-- **Validación:** `express-validator` · **Rate limiting:** `express-rate-limit`
-- **Uploads:** `multer` → `uploads/`
