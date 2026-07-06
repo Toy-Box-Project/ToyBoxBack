@@ -4,6 +4,12 @@ import { body } from 'express-validator';
 import { register, login, logout } from '../controllers/auth.controller.js';
 import { validate } from '../middlewares/validate.js';
 
+/**
+ * Defines HTTP routes for authentication: user registration, login, and
+ * logout. Registration and login are rate-limited and validated; all routes
+ * here are public (no authentication required to call them).
+ */
+
 const router = Router();
 
 const authLimiter = rateLimit({
@@ -31,8 +37,11 @@ const loginRules = [
   body('password').notEmpty().withMessage('password es requerido'),
 ];
 
+// POST /api/auth/register - Public (rate-limited + validated): create a new user account
 router.post('/register', authLimiter, registerRules, validate, register);
+// POST /api/auth/login - Public (rate-limited + validated): authenticate a user and issue a session/JWT
 router.post('/login',    authLimiter, loginRules,    validate, login);
+// POST /api/auth/logout - Public: clear the auth cookie/session
 router.post('/logout',   logout);
 
 export default router;

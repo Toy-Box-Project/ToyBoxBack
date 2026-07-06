@@ -1,5 +1,19 @@
+/**
+ * Data-access layer for buyer/seller conversations tied to an item, and the
+ * messages exchanged within them (list conversations for a user, fetch/send
+ * messages, track read state).
+ */
+
 import pool from '../config/db.js';
 
+/**
+ * Finds an existing conversation for a given item/seller/buyer triple, or creates one.
+ * @param {object} params
+ * @param {number} params.fk_items_id - item the conversation is about.
+ * @param {number} params.fk_seller_id - seller user id.
+ * @param {number} params.fk_buyer_id - buyer user id.
+ * @returns {Promise<{conversation: object, created: boolean}>} the conversation row and whether it was newly created.
+ */
 export async function findOrCreate({ fk_items_id, fk_seller_id, fk_buyer_id }) {
   const [existing] = await pool.query(
     `SELECT * FROM conversations WHERE fk_items_id=? AND fk_seller_id=? AND fk_buyer_id=? LIMIT 1`,
@@ -17,6 +31,12 @@ export async function findOrCreate({ fk_items_id, fk_seller_id, fk_buyer_id }) {
   return { conversation: rows[0], created: true };
 }
 
+/**
+ * Fetches a conversation by id, joined with item summary data (title, price,
+ * status, main photo) and basic seller/buyer profile info.
+ * @param {number} id - conversation id (id_conversations).
+ * @returns {Promise<object|null>} the enriched conversation row, or null if not found.
+ */
 export async function getById(id) {
   const [rows] = await pool.query(
     `SELECT c.*,
@@ -34,6 +54,13 @@ export async function getById(id) {
   return rows[0] ?? null;
 }
 
+/**
+ * Lists all conversations involving a user (as seller or buyer), enriched with
+ * item info, counterpart profile info, the last message preview, and the
+ * count of unread messages addressed to this user.
+ * @param {number} userId - the user id to fetch conversations for.
+ * @returns {Promise<object[]>} normalized conversation summaries.
+ */
 export async function getUserConversations(userId) {
   const [rows] = await pool.query(
     `SELECT c.*,
@@ -84,6 +111,11 @@ export async function getUserConversations(userId) {
   }));
 }
 
+/**
+ * Fetches all messages in a conversation, joined with the sender's username/avatar.
+ * @param {number} conversationId - conversation id.
+ * @returns {Promise<object[]>} messages ordered chronologically (oldest first).
+ */
 export async function getMessages(conversationId) {
   const [rows] = await pool.query(
     `SELECT m.*, u.username AS sender_username, u.profile_picture AS sender_avatar
@@ -97,10 +129,19 @@ export async function getMessages(conversationId) {
 }
 
 
+/**
+ * Inserts a new message in a conversation, initially marked unread.
+ * @param {object} params
+ * @param {number} params.fk_conversations_id - parent conversation id.
+ * @param {number} params.fk_users_id_sent - sender user id.
+ * @param {number} params.fk_users_id_received - recipient user id.
+ * @param {string} params.content - message text.
+ * @returns {Promise<object>} the newly created message row.
+ */
 export async function createMessage({ fk_conversations_id, fk_users_id_sent, fk_users_id_received, content }) {
   const [result] = await pool.query(
     `INSERT INTO messages (fk_conversations_id, fk_users_id_sent, fk_users_id_received, content, \`read\`)
-    VALUES (?, ?, ?, ?, 0)`,  // ← Cambiar "false" por "0"
+    VALUES (?, ?, ?, ?, 0)`,
     [fk_conversations_id, fk_users_id_sent, fk_users_id_received, content]
   );
   const [rows] = await pool.query('SELECT * FROM messages WHERE id_messages=? LIMIT 1', [result.insertId]);
@@ -108,6 +149,13 @@ export async function createMessage({ fk_conversations_id, fk_users_id_sent, fk_
 }
 
 
+/**
+ * Marks all unread messages addressed to a user within a conversation as read.
+ * @param {object} params
+ * @param {number} params.conversationId - conversation id.
+ * @param {number} params.userId - the recipient whose messages should be marked read.
+ * @returns {Promise<number>} number of rows updated (messages marked as read).
+ */
 export async function markAsRead({ conversationId, userId }) {
   const [result] = await pool.query(
     `UPDATE messages SET \`read\`=1 WHERE fk_conversations_id=? AND fk_users_id_received=? AND \`read\`=0`,

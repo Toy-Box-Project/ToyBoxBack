@@ -1,3 +1,9 @@
+/**
+ * Controller responsible for CRUD operations on items (products),
+ * including listing/searching published items, image uploads, and
+ * lifecycle transitions (draft -> published -> reserved/sold/removed).
+ * Triggers notifications on creation, edits, publishing, sale, and deletion.
+ */
 import { uploadBufferToCloudinary } from '../config/cloudinary.js';
 import * as ItemModel from '../models/item.model.js';
 import * as NotificationModel from '../models/notification.model.js';
@@ -5,6 +11,15 @@ import * as ConversationModel from '../models/conversation.model.js';
 
 const PRODUCT_FOLDER = 'toybox_images/users/products';
 
+/**
+ * Lists published items with optional search/filter/pagination.
+ * Reads req.query: search, categoryId, location, minPrice, maxPrice,
+ * sellerId, page, limit, conservation_status (defaults to 'published').
+ * @param {import('express').Request} req - Express request; query holds filter/pagination params.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the paginated list result.
+ */
 export async function listProducts(req, res, next) {
   try {
     const { search, categoryId, location, minPrice, maxPrice, sellerId, page, limit, conservation_status } = req.query; 
@@ -23,6 +38,15 @@ export async function listProducts(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Retrieves a single item by id, including its photos.
+ * Reads req.params.id.
+ * @param {import('express').Request} req - Express request; params.id identifies the item.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the item and its photos.
+ * @throws Responds 404 if the item doesn't exist.
+ */
 export async function getProduct(req, res, next) {
   try {
     const item = await ItemModel.getById(Number(req.params.id));
@@ -32,6 +56,19 @@ export async function getProduct(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Creates a new item (product), owned by the current user.
+ * Reads req.body: title, description, price, fk_categories_id, location,
+ * conservation_status (defaults to 'draft'); seller is set to req.user.id_users.
+ * Validates required fields, title/description length limits, and price > 0.
+ * Creates a notification for the seller on success.
+ * @param {import('express').Request} req - Express request; body holds item fields.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 201 with the created item.
+ * @throws Responds 400 on missing/invalid fields (title, price, fk_categories_id,
+ * title/description length, price <= 0).
+ */
 export async function createProduct(req, res, next) {
   try {
     const { title, description, price, fk_categories_id, location, conservation_status } = req.body;
@@ -63,6 +100,19 @@ export async function createProduct(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Updates an existing item's editable fields.
+ * Reads req.params.id and req.body: title, description, price, fk_categories_id, location.
+ * Authorization: only the item's owner (fk_seller_id) or an 'administrator'
+ * may edit it; items must be in 'draft' or 'published' status to be editable.
+ * Creates a notification for the seller on success.
+ * @param {import('express').Request} req - Express request; params.id identifies the item.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the updated item.
+ * @throws Responds 404 if not found, 403 if the requester is neither owner nor
+ * administrator, 409 if the item's status doesn't allow editing.
+ */
 export async function updateProduct(req, res, next) {
   try {
     const id = Number(req.params.id);
@@ -92,6 +142,17 @@ export async function updateProduct(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Uploads up to 5 images (total) for an item to Cloudinary.
+ * Reads req.params.id and req.files (multipart array upload).
+ * Authorization: only the item's owner (fk_seller_id) may upload images.
+ * @param {import('express').Request} req - Express request; params.id identifies the item, req.files holds the image buffers.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 201 with the created photo records.
+ * @throws Responds 404 if not found, 403 if the requester isn't the owner,
+ * 400 if no files were sent or the 5-image limit would be exceeded.
+ */
 export async function uploadImages(req, res, next) {
   try {
     const id = Number(req.params.id);
@@ -121,6 +182,19 @@ export async function uploadImages(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Publishes a draft item, making it visible in listings.
+ * Reads req.params.id.
+ * Authorization: only the item's owner (fk_seller_id) may publish it.
+ * Requires the item to be in 'draft' status and to have at least one uploaded photo.
+ * Creates a notification for the seller on success.
+ * @param {import('express').Request} req - Express request; params.id identifies the item.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the published item.
+ * @throws Responds 404 if not found, 403 if the requester isn't the owner,
+ * 409 if not in 'draft' status, 400 if it has no photos.
+ */
 export async function publishProduct(req, res, next) {
   try {
     const id = Number(req.params.id);
@@ -146,6 +220,21 @@ export async function publishProduct(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Marks an item as sold to a given buyer.
+ * Reads req.params.id and req.body.fk_buyer_id.
+ * Authorization: only the item's owner (fk_seller_id) may mark it as sold.
+ * Requires a valid positive integer fk_buyer_id, an existing conversation
+ * between the seller and that buyer for this item, and the item to be in
+ * 'published' or 'reserved' status. Notifies both the seller and buyer on success.
+ * @param {import('express').Request} req - Express request; params.id identifies the item, body.fk_buyer_id identifies the buyer.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the sold item.
+ * @throws Responds 404 if not found, 403 if the requester isn't the owner,
+ * 400 if fk_buyer_id is missing/invalid or no valid conversation exists,
+ * 409 if the item's status doesn't allow marking as sold.
+ */
 export async function soldProduct(req, res, next) {
   try {
     const id = Number(req.params.id);
@@ -195,6 +284,19 @@ export async function soldProduct(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Soft-deletes an item (marks it as removed rather than hard-deleting).
+ * Reads req.params.id.
+ * Authorization: only the item's owner (fk_seller_id) or an 'administrator' may delete it.
+ * Blocks deletion if the item is already removed, sold, or under review.
+ * Creates a notification for the requester on success.
+ * @param {import('express').Request} req - Express request; params.id identifies the item.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 204 No Content on success.
+ * @throws Responds 404 if not found, 403 if the requester is neither owner nor
+ * administrator, 409 if the item is already removed, sold, or under review.
+ */
 export async function deleteProduct(req, res, next) {
   try {
     const id = Number(req.params.id);

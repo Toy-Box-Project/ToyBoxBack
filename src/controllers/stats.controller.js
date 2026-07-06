@@ -1,5 +1,21 @@
+/**
+ * Controller responsible for aggregated administrative statistics
+ * (dashboard metrics on items, users, sales, categories, reservations,
+ * and reports). Intended to be restricted to administrators via route middleware.
+ */
 import pool from '../config/db.js';
 
+/**
+ * Computes and returns aggregated platform statistics for the admin dashboard:
+ * items grouped by conservation_status, total completed sales, users grouped
+ * by status, top 10 categories by published item count, pending/total
+ * reservations, and pending reports count.
+ * Does not read any request input beyond the implicit admin session.
+ * @param {import('express').Request} req - Express request.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with an object containing all aggregated stats.
+ */
 export async function getAdminStats(req, res, next) {
   try {
     const [itemsByStatus] = await pool.query(

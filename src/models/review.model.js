@@ -1,5 +1,16 @@
+/**
+ * Data-access layer for item/user reviews: fetch reviews by item, reviewer,
+ * or reviewed user, compute average ratings, and validate/create new reviews
+ * (guarding against duplicate reviews and reviews without a completed trade).
+ */
+
 import pool from '../config/db.js';
 
+/**
+ * Lists all reviews left on a given item, joined with reviewer and reviewed user display data.
+ * @param {number} productId - item id (fk_items_id).
+ * @returns {Promise<object[]>} review rows, most recent first.
+ */
 export async function getByProduct(productId) {
   const [rows] = await pool.query(
     `SELECT r.*,
@@ -15,6 +26,13 @@ export async function getByProduct(productId) {
   return rows;
 }
 
+/**
+ * Checks whether a buyer has a completed trade (trade_status = 'done') for an
+ * item — used to gate review creation to actual completed purchases.
+ * @param {number} buyerId - buyer user id.
+ * @param {number} itemId - item id.
+ * @returns {Promise<boolean>} true if at least one completed trade exists.
+ */
 export async function hasCompletedOrder(buyerId, itemId) {
   const [[{ count }]] = await pool.query(
     `SELECT COUNT(*) AS count FROM item_history
@@ -24,6 +42,12 @@ export async function hasCompletedOrder(buyerId, itemId) {
   return count > 0;
 }
 
+/**
+ * Checks whether a reviewer has already left a review for an item (guards against duplicates).
+ * @param {number} reviewerId - reviewer user id.
+ * @param {number} itemId - item id.
+ * @returns {Promise<boolean>} true if a review already exists.
+ */
 export async function alreadyReviewed(reviewerId, itemId) {
   const [[{ count }]] = await pool.query(
     `SELECT COUNT(*) AS count FROM reviews WHERE fk_reviewer_id = ? AND fk_items_id = ?`,
@@ -32,6 +56,16 @@ export async function alreadyReviewed(reviewerId, itemId) {
   return count > 0;
 }
 
+/**
+ * Creates a new review for an item.
+ * @param {object} params
+ * @param {number} params.rating - numeric rating value.
+ * @param {string} [params.comment] - optional free-text comment.
+ * @param {number} params.fk_items_id - reviewed item id.
+ * @param {number} params.fk_reviewer_id - user writing the review.
+ * @param {number} params.fk_reviewed_id - user being reviewed (e.g. the seller).
+ * @returns {Promise<object>} the newly created review, joined with reviewer/reviewed display data.
+ */
 export async function createReview({ rating, comment, fk_items_id, fk_reviewer_id, fk_reviewed_id }) {
   const [result] = await pool.query(
     `INSERT INTO reviews (rating, comment, fk_items_id, fk_reviewer_id, fk_reviewed_id, review_date)
@@ -51,9 +85,15 @@ export async function createReview({ rating, comment, fk_items_id, fk_reviewer_i
   return rows[0];
 }
 
+/**
+ * Lists all reviews written by a given user, each annotated with the
+ * reviewed user's (seller's) basic profile data nested under `reviewed`.
+ * @param {number} reviewerId - reviewer user id.
+ * @returns {Promise<object[]>} normalized review rows with a nested `reviewed` object.
+ */
 export async function getByReviewer(reviewerId) {
   const [reviews] = await pool.query(
-    `SELECT 
+    `SELECT
       r.id_reviews,
       r.rating,
       r.comment,
@@ -61,7 +101,7 @@ export async function getByReviewer(reviewerId) {
       r.fk_items_id,
       r.fk_reviewer_id,
       r.fk_reviewed_id,
-      -- AGREGAR: Datos del usuario que fue reseñado (vendedor)
+      -- Data for the reviewed user (seller)
       u_reviewed.id_users AS reviewed_id,
       u_reviewed.first_name AS reviewed_first_name,
       u_reviewed.last_name AS reviewed_last_name,
@@ -90,6 +130,12 @@ export async function getByReviewer(reviewerId) {
   }));
 }
 
+/**
+ * Lists all reviews received by a seller (i.e. reviews on items they sold),
+ * each annotated with the reviewer's (buyer's) basic profile data nested under `reviewer`.
+ * @param {number} sellerId - seller user id.
+ * @returns {Promise<object[]>} normalized review rows with a nested `reviewer` object.
+ */
 export async function getBySeller(sellerId) {
   const [reviews] = await pool.query(
     `SELECT
@@ -130,6 +176,11 @@ export async function getBySeller(sellerId) {
   }));
 }
 
+/**
+ * Computes the average rating and total review count for an item.
+ * @param {number} productId - item id.
+ * @returns {Promise<{averageRating: string, totalReviews: number}>} average rating formatted to 1 decimal (as string), 0 if no reviews exist.
+ */
 export async function getAverageRatingByProduct(productId) {
   const [[result]] = await pool.query(
     `SELECT 
@@ -145,6 +196,13 @@ export async function getAverageRatingByProduct(productId) {
   };
 }
 
+/**
+ * Fetches the single review a reviewer left on a specific item, if any,
+ * with nested `item` (title/price) and `reviewed` (username/avatar) data.
+ * @param {number} reviewerId - reviewer user id.
+ * @param {number} itemId - item id.
+ * @returns {Promise<object|null>} the normalized review, or null if none exists.
+ */
 export async function getByReviewerAndProduct(reviewerId, itemId) {
   const [reviews] = await pool.query(
     `SELECT r.*,

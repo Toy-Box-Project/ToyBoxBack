@@ -1,5 +1,15 @@
+/**
+ * Data-access layer for completed orders (finished trades): lists a user's
+ * purchases and sales, and looks up a single order, all derived from
+ * item_history rows where trade_status = 'done'.
+ */
+
 import pool from '../config/db.js';
 
+/**
+ * Shared SELECT joining completed item_history rows with item details,
+ * seller/buyer names, and the item's main photo. Restricted to trade_status 'done'.
+ */
 const BASE_SELECT = `
   SELECT ih.*,
          i.title, i.price, i.location,
@@ -14,6 +24,11 @@ const BASE_SELECT = `
   WHERE ih.trade_status = 'done'
 `;
 
+/**
+ * Lists a buyer's completed purchases, most recent first.
+ * @param {number} buyerId - buyer user id.
+ * @returns {Promise<object[]>} completed order rows (see BASE_SELECT).
+ */
 export async function getPurchases(buyerId) {
   const [rows] = await pool.query(
     `${BASE_SELECT} AND ih.fk_buyer_id = ? ORDER BY ih.trade_date DESC`,
@@ -22,6 +37,11 @@ export async function getPurchases(buyerId) {
   return rows;
 }
 
+/**
+ * Lists a seller's completed sales, most recent first.
+ * @param {number} sellerId - seller user id.
+ * @returns {Promise<object[]>} completed order rows (see BASE_SELECT).
+ */
 export async function getSales(sellerId) {
   const [rows] = await pool.query(
     `${BASE_SELECT} AND i.fk_seller_id = ? ORDER BY ih.trade_date DESC`,
@@ -30,6 +50,13 @@ export async function getSales(sellerId) {
   return rows;
 }
 
+/**
+ * Fetches a single completed order by id, restricted to the requesting user
+ * being either the buyer or the seller (access control at the query level).
+ * @param {number} id - item_history id (id_item_history).
+ * @param {number} userId - requesting user id, must be buyer or seller.
+ * @returns {Promise<object|null>} the order row, or null if not found/not authorized.
+ */
 export async function getOrderById(id, userId) {
   const [rows] = await pool.query(
     `${BASE_SELECT} AND ih.id_item_history = ? AND (ih.fk_buyer_id = ? OR i.fk_seller_id = ?) LIMIT 1`,

@@ -1,13 +1,32 @@
+/**
+ * Controller responsible for user profile management (viewing own/public
+ * profiles, updating profile data and avatar, deactivating accounts) and
+ * administrative user operations (listing users, changing role/status).
+ */
 import cloudinary, { uploadBufferToCloudinary } from '../config/cloudinary.js';
 import * as UserModel from '../models/user.model.js';
 
-// Carpeta fija en Cloudinary para las fotos de perfil de usuario
+// Fixed Cloudinary folder for user profile pictures
 const PROFILE_FOLDER = 'toybox_images/users/profile';
 
+/**
+ * Builds the Cloudinary public_id used to store/overwrite a user's avatar.
+ * @param {number} id - User id.
+ * @returns {string} Cloudinary public_id for the user's avatar.
+ */
 function avatarPublicId(id) {
   return `${PROFILE_FOLDER}/user_${id}`;
 }
 
+/**
+ * Retrieves the current authenticated user's full profile.
+ * Reads req.user.id_users.
+ * @param {import('express').Request} req - Express request.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the user's profile.
+ * @throws Responds 404 if the user doesn't exist.
+ */
 export async function getMyProfile(req, res, next) {
   try {
     const user = await UserModel.findById(req.user.id_users);
@@ -16,6 +35,15 @@ export async function getMyProfile(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Retrieves the public-facing profile of any user by id.
+ * Reads req.params.id.
+ * @param {import('express').Request} req - Express request; params.id identifies the target user.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the public profile fields.
+ * @throws Responds 404 if the user doesn't exist.
+ */
 export async function getPublicProfile(req, res, next) {
   try {
     const user = await UserModel.getPublicProfile(Number(req.params.id));
@@ -24,6 +52,23 @@ export async function getPublicProfile(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Updates a user's profile fields (name, contact info, location,
+ * birthday) and optionally clears the profile picture.
+ * Reads req.params.id and req.body: username, first_name, last_name,
+ * phone_number, user_city, user_province, user_zipcode, user_birthday,
+ * remove_profile_picture.
+ * Authorization: a user may only update their own profile
+ * (req.user.id_users must equal req.params.id).
+ * If remove_profile_picture is truthy, attempts to delete the existing
+ * avatar from Cloudinary (best-effort; failures are swallowed).
+ * @param {import('express').Request} req - Express request; params.id identifies the target user, body holds updated fields.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the updated profile.
+ * @throws Responds 403 if the requester doesn't own the profile, 404 if the
+ * user doesn't exist, 409 if the new username is already taken.
+ */
 export async function updateProfile(req, res, next) {
   try {
     const id = Number(req.params.id);
@@ -72,6 +117,17 @@ export async function updateProfile(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Uploads/replaces the current user's profile picture on Cloudinary.
+ * Reads req.params.id and the uploaded file from req.file.
+ * Authorization: a user may only change their own avatar
+ * (req.user.id_users must equal req.params.id).
+ * @param {import('express').Request} req - Express request; params.id identifies the target user, req.file has the image buffer.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the updated user including the new avatar URL.
+ * @throws Responds 403 if the requester doesn't own the profile, 400 if no image file was sent.
+ */
 export async function uploadAvatar(req, res, next) {
   try {
     const id = Number(req.params.id);
@@ -91,6 +147,18 @@ export async function uploadAvatar(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Deactivates (soft-deletes) a user account and best-effort removes
+ * its avatar from Cloudinary.
+ * Reads req.params.id.
+ * Authorization: a user may only deactivate their own account
+ * (req.user.id_users must equal req.params.id).
+ * @param {import('express').Request} req - Express request; params.id identifies the target user.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 204 No Content on success.
+ * @throws Responds 403 if the requester doesn't own the account, 404 if the user doesn't exist.
+ */
 export async function deleteAccount(req, res, next) {
   try {
     const id = Number(req.params.id);
@@ -113,6 +181,15 @@ export async function deleteAccount(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Lists users with optional filters and pagination, for administrative use.
+ * Reads req.query: username, email, role, status, page, limit.
+ * Intended to be restricted to administrators via route middleware.
+ * @param {import('express').Request} req - Express request; query holds filter/pagination params.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the paginated list of users.
+ */
 export async function adminListUsers(req, res, next) {
   try {
     const { username, email, role, status, page, limit } = req.query;
@@ -124,6 +201,18 @@ export async function adminListUsers(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Changes a user's role, for administrative use.
+ * Reads req.params.id, req.body.role, and req.user.id_users.
+ * Enforces that an administrator cannot change their own role, and that
+ * the role is one of 'user', 'moderator', 'administrator'. Intended to
+ * be restricted to administrators via route middleware.
+ * @param {import('express').Request} req - Express request; params.id identifies the target user, body.role is the new role.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the updated user.
+ * @throws Responds 400 if targeting self or an invalid role, 404 if the user doesn't exist.
+ */
 export async function adminChangeRole(req, res, next) {
   try {
     const id = Number(req.params.id);
@@ -140,6 +229,18 @@ export async function adminChangeRole(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Changes a user's account status (active/blocked), for administrative use.
+ * Reads req.params.id, req.body.status, and req.user.id_users.
+ * Enforces that an administrator cannot change their own status, and that
+ * status is one of 'active', 'blocked'. Intended to be restricted to
+ * administrators via route middleware.
+ * @param {import('express').Request} req - Express request; params.id identifies the target user, body.status is the new status.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the updated user.
+ * @throws Responds 400 if targeting self or an invalid status, 404 if the user doesn't exist.
+ */
 export async function adminChangeStatus(req, res, next) {
   try {
     const id = Number(req.params.id);

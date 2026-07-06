@@ -1,7 +1,20 @@
+/**
+ * Data-access layer for item (toy listing) records: fetch by id with photos,
+ * search/filter/paginate published listings, create/update/soft-delete items,
+ * manage item photos, and drive the publish/sell lifecycle (draft -> published
+ * -> sold), including recording completed trades in item_history.
+ */
+
 import pool from '../config/db.js';
 
-// ─── Helpers internos ────────────────────────────────────────────────────────
+// ─── Internal helpers ────────────────────────────────────────────────────────
 
+/**
+ * Fetches a single item by id, joined with its category name and seller's
+ * public profile fields, and attaches the full ordered list of photos.
+ * @param {number} id - item id (id_items).
+ * @returns {Promise<object|null>} the item row with an added `images` array, or null if not found.
+ */
 export async function getById(id) {
   const [rows] = await pool.query(
     `SELECT i.*,
@@ -29,6 +42,11 @@ export async function getById(id) {
   return item;
 }
 
+/**
+ * Fetches all photos for an item, ordered by their display order.
+ * @param {number} itemId - item id.
+ * @returns {Promise<object[]>} rows from items_photos.
+ */
 export async function getPhotos(itemId) {
   const [rows] = await pool.query(
     'SELECT * FROM items_photos WHERE fk_items_id = ? ORDER BY photo_order ASC',
@@ -37,10 +55,27 @@ export async function getPhotos(itemId) {
   return rows;
 }
 
-// ─── Listado público con filtros y paginación ─────────────────────────────────
+// ─── Public listing with filters and pagination ─────────────────────────────────
 
-export async function getPublished({ search, categoryId, location, minPrice, maxPrice, sellerId, page = 1, limit = 12, conservation_status = 'published' } = {}) { // ← CAMBIO: agregar parámetro conservation_status con defecto 'published'
-  const conditions = [`i.conservation_status = ?`]; 
+/**
+ * Searches/lists items with optional filters, paginated. By default only
+ * returns items whose conservation_status is 'published'; pass a different
+ * conservation_status to list drafts/sold/removed items instead (e.g. for a
+ * seller's own dashboard).
+ * @param {object} [options]
+ * @param {string} [options.search] - free-text search, matched via LIKE against title and description.
+ * @param {number} [options.categoryId] - restrict to a category.
+ * @param {string} [options.location] - LIKE-based location filter.
+ * @param {number} [options.minPrice] - minimum price (inclusive).
+ * @param {number} [options.maxPrice] - maximum price (inclusive).
+ * @param {number} [options.sellerId] - restrict to a specific seller.
+ * @param {number} [options.page=1] - 1-based page number.
+ * @param {number} [options.limit=12] - page size.
+ * @param {string} [options.conservation_status='published'] - lifecycle status filter.
+ * @returns {Promise<{items: object[], total: number, page: number, limit: number}>} paginated results with a total row count.
+ */
+export async function getPublished({ search, categoryId, location, minPrice, maxPrice, sellerId, page = 1, limit = 12, conservation_status = 'published' } = {}) {
+  const conditions = [`i.conservation_status = ?`];
   const params = [conservation_status]; 
 
   if (sellerId)              { conditions.push('i.fk_seller_id = ?');     params.push(sellerId); }
@@ -76,15 +111,39 @@ export async function getPublished({ search, categoryId, location, minPrice, max
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
-export async function createItem({ title, description, price, fk_categories_id, location, fk_seller_id, conservation_status = 'draft' }) { // ← CAMBIO: agregar parámetro conservation_status con defecto 'draft'
+/**
+ * Creates a new item listing. Defaults to conservation_status 'draft' (not
+ * publicly visible until explicitly published) and item_status 'available'.
+ * @param {object} data
+ * @param {string} data.title - listing title.
+ * @param {string} [data.description] - listing description.
+ * @param {number} data.price - item price.
+ * @param {number} data.fk_categories_id - category id.
+ * @param {string} [data.location] - free-text location.
+ * @param {number} data.fk_seller_id - seller user id.
+ * @param {string} [data.conservation_status='draft'] - initial lifecycle status.
+ * @returns {Promise<object|null>} the created item (see getById).
+ */
+export async function createItem({ title, description, price, fk_categories_id, location, fk_seller_id, conservation_status = 'draft' }) {
   const [result] = await pool.query(
     `INSERT INTO items (title, description, price, fk_categories_id, location, fk_seller_id, conservation_status, item_status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'available')`, 
-    [title, description ?? null, price, fk_categories_id, location ?? null, fk_seller_id, conservation_status] // ← CAMBIO: agregar conservation_status como último parámetro
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'available')`,
+    [title, description ?? null, price, fk_categories_id, location ?? null, fk_seller_id, conservation_status]
   );
   return getById(result.insertId);
 }
 
+/**
+ * Updates an item's editable fields and bumps its item_update timestamp.
+ * @param {number} id - item id.
+ * @param {object} data
+ * @param {string} data.title
+ * @param {string} [data.description]
+ * @param {number} data.price
+ * @param {number} data.fk_categories_id
+ * @param {string} [data.location]
+ * @returns {Promise<object|null>} the updated item (see getById).
+ */
 export async function updateItem(id, { title, description, price, fk_categories_id, location }) {
   await pool.query(
     `UPDATE items SET title = ?, description = ?, price = ?, fk_categories_id = ?, location = ?, item_update = NOW()
@@ -94,6 +153,12 @@ export async function updateItem(id, { title, description, price, fk_categories_
   return getById(id);
 }
 
+/**
+ * Soft-deletes an item by flipping its conservation_status to 'removed' and
+ * item_status to 'deleted' (row is kept for history/audit purposes).
+ * @param {number} id - item id.
+ * @returns {Promise<void>}
+ */
 export async function softDeleteItem(id) {
   await pool.query(
     `UPDATE items SET conservation_status = 'removed', item_status = 'deleted', item_update = NOW() WHERE id_items = ?`,
@@ -101,6 +166,13 @@ export async function softDeleteItem(id) {
   );
 }
 
+/**
+ * Appends new photos to an item, auto-incrementing photo_order after the
+ * current maximum so existing photo ordering is preserved.
+ * @param {number} itemId - item id.
+ * @param {string[]} urls - photo URLs to add, in desired order.
+ * @returns {Promise<object[]>} the item's full photo list after insertion.
+ */
 export async function addPhotos(itemId, urls) {
   const [[{ maxOrder }]] = await pool.query(
     'SELECT COALESCE(MAX(photo_order), 0) AS maxOrder FROM items_photos WHERE fk_items_id = ?',
@@ -112,6 +184,12 @@ export async function addPhotos(itemId, urls) {
   return getPhotos(itemId);
 }
 
+/**
+ * Publishes an item: sets conservation_status to 'published' and stamps
+ * publication_date/item_update to now, making it visible in public listings.
+ * @param {number} id - item id.
+ * @returns {Promise<object|null>} the updated item (see getById).
+ */
 export async function publishItem(id) {
   await pool.query(
     `UPDATE items SET conservation_status = 'published', publication_date = NOW(), item_update = NOW() WHERE id_items = ?`,

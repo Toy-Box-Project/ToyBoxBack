@@ -1,6 +1,17 @@
+/**
+ * Controller responsible for CRUD operations on item categories,
+ * including uploading a category's icon image to Cloudinary.
+ */
 import * as CategoryModel from '../models/category.model.js';
 import { uploadBufferToCloudinary } from '../config/cloudinary.js';
 
+/**
+ * Lists all categories.
+ * @param {import('express').Request} req - Express request (no input read).
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with an array of categories.
+ */
 export async function getAll(req, res, next) {
   try {
     const categories = await CategoryModel.getAll();
@@ -10,6 +21,15 @@ export async function getAll(req, res, next) {
   }
 }
 
+/**
+ * Creates a new category.
+ * Reads req.body.name (required) and req.body.description.
+ * @param {import('express').Request} req - Express request; body contains name and description.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 201 with the created category.
+ * @throws Responds 400 if name is missing, 409 if a category with that name already exists.
+ */
 export async function create(req, res, next) {
   try {
     const { name, description } = req.body;
@@ -25,6 +45,16 @@ export async function create(req, res, next) {
   }
 }
 
+/**
+ * Updates an existing category's name and description.
+ * Reads req.params.id and req.body.name (required), req.body.description.
+ * @param {import('express').Request} req - Express request; params.id identifies the category, body has updated fields.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the updated category.
+ * @throws Responds 400 if name is missing, 404 if the category doesn't exist,
+ * 409 if the new name collides with another category.
+ */
 export async function update(req, res, next) {
   try {
     const { id } = req.params;
@@ -44,6 +74,15 @@ export async function update(req, res, next) {
   }
 }
 
+/**
+ * Uploads/replaces a category's icon image on Cloudinary.
+ * Reads req.params.id and the uploaded file from req.file (multipart upload).
+ * @param {import('express').Request} req - Express request; params.id identifies the category, req.file has the image buffer.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with the updated category including the new icon URL.
+ * @throws Responds 404 if the category doesn't exist, 400 if no image file was sent.
+ */
 export async function uploadIcon(req, res, next) {
   try {
     const { id } = req.params;
@@ -64,6 +103,15 @@ export async function uploadIcon(req, res, next) {
   }
 }
 
+/**
+ * Deletes a category by id.
+ * Reads req.params.id.
+ * @param {import('express').Request} req - Express request; params.id identifies the category.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 204 No Content on success.
+ * @throws Responds 404 if the category doesn't exist.
+ */
 export async function remove(req, res, next) {
   try {
     const { id } = req.params;

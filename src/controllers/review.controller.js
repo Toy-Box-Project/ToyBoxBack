@@ -1,8 +1,30 @@
+/**
+ * Controller responsible for user reviews on items: creating a review
+ * (validating the reviewer actually transacted on the item via an
+ * existing conversation), and reading reviews by product, reviewer, or seller.
+ */
 import * as ReviewModel from '../models/review.model.js';
 import * as ItemModel from '../models/item.model.js';
 import * as UserModel from '../models/user.model.js';
 import * as NotificationModel from '../models/notification.model.js';
 
+/**
+ * Creates a review for an item/user transaction.
+ * Reads req.body: rating, comment, fk_items_id, fk_reviewed_id, and
+ * req.user.id_users as the reviewer. Basic field/rating-range validation
+ * is expected to be handled by upstream middleware (not duplicated here).
+ * Enforces that a conversation exists between the seller and buyer for
+ * this item (i.e. a real transaction context) and that the reviewer has
+ * not already reviewed this item.
+ * Creates a notification for the reviewed user on success.
+ * @param {import('express').Request} req - Express request; body holds review fields.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 201 with the created review.
+ * @throws Responds 404 if the item or reviewed user doesn't exist, 403 if no
+ * conversation exists for this product between the parties, 409 if the
+ * reviewer already reviewed this item.
+ */
 export async function createReview(req, res, next) {
   try {
     const { rating, comment, fk_items_id, fk_reviewed_id } = req.body;
@@ -54,6 +76,14 @@ export async function createReview(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * Lists all reviews for a given product.
+ * Reads req.params.productId.
+ * @param {import('express').Request} req - Express request; params.productId identifies the item.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with an array of reviews.
+ */
 export async function getProductReviews(req, res, next) {
   try {
     res.json(await ReviewModel.getByProduct(Number(req.params.productId)));
@@ -61,6 +91,15 @@ export async function getProductReviews(req, res, next) {
 }
 
 
+/**
+ * Lists all reviews written by a given reviewer, enriched with basic
+ * item info (id, title, price, images) for each reviewed product.
+ * Reads req.params.reviewerId.
+ * @param {import('express').Request} req - Express request; params.reviewerId identifies the reviewer.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with an array of reviews enriched with item data.
+ */
 export async function getByReviewer(req, res, next) {
   try {
     const reviews = await ReviewModel.getByReviewer(Number(req.params.reviewerId));
@@ -89,6 +128,15 @@ export async function getByReviewer(req, res, next) {
   }
 }
 
+/**
+ * Lists all reviews received by a given seller, enriched with basic
+ * item info (id, title, price, images) for each reviewed product.
+ * Reads req.params.sellerId.
+ * @param {import('express').Request} req - Express request; params.sellerId identifies the seller.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with an array of reviews enriched with item data.
+ */
 export async function getBySeller(req, res, next) {
   try {
     const reviews = await ReviewModel.getBySeller(Number(req.params.sellerId));
@@ -117,6 +165,14 @@ export async function getBySeller(req, res, next) {
   }
 }
 
+/**
+ * Returns the average rating and total review count for a product.
+ * Reads req.params.productId.
+ * @param {import('express').Request} req - Express request; params.productId identifies the item.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Delegates unexpected errors to the error handler.
+ * @returns {Promise<void>} 200 with { averageRating, totalReviews } (defaulting to 0 if none).
+ */
 export async function getProductAverageRating(req, res, next) {
   try {
     const average = await ReviewModel.getAverageRatingByProduct(Number(req.params.productId));

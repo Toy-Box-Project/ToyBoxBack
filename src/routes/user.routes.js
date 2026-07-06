@@ -5,6 +5,12 @@ import { upload } from '../middlewares/upload.js';
 import { validate } from '../middlewares/validate.js';
 import { getMyProfile, getPublicProfile, updateProfile, uploadAvatar,deleteAccount } from '../controllers/user.controller.js';
 
+/**
+ * Defines HTTP routes for user profile management: fetching the
+ * authenticated user's own profile, viewing another user's public profile,
+ * updating profile data, uploading an avatar, and deleting the account.
+ */
+
 const router = Router();
 
 const updateProfileRules = [
@@ -19,12 +25,17 @@ const updateProfileRules = [
   body('remove_profile_picture').optional().isBoolean().withMessage('remove_profile_picture debe ser booleano'),
 ];
 
+// GET /api/users/me - Protected (authenticate): get the authenticated user's own profile
 router.get('/me', authenticate, getMyProfile);
 
+// GET /api/users/:id - Public: get another user's public profile
 router.get('/:id', getPublicProfile);
+// PUT /api/users/:id - Protected (authenticate) + validated: update the authenticated user's profile
 router.put('/:id',            authenticate, updateProfileRules, validate, updateProfile);
+// PATCH /api/users/:id/avatar - Protected (authenticate) + file-upload (single image): update the user's avatar
 router.patch('/:id/avatar',   authenticate, upload.single('avatar'), uploadAvatar);
 
-router.delete('/:id',         authenticate, deleteAccount); 
+// DELETE /api/users/:id - Protected (authenticate): delete the authenticated user's account
+router.delete('/:id',         authenticate, deleteAccount);
 
 export default router;
